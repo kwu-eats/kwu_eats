@@ -43,7 +43,7 @@ cp .env.example .env
 cp apps/api/.env.example apps/api/.env
 
 # apps/web 환경변수
-cp apps/web/.env.example apps/web/.env.local
+cp apps/web/.env.example apps/web/.env
 ```
 
 ### Docker로 전체 스택 실행 (권장)
@@ -85,6 +85,12 @@ docker compose exec api pnpm prisma migrate dev
 
 # 시드 데이터 삽입
 docker compose exec api pnpm prisma:seed
+```
+
+초기 스키마 생성 시에는 다음처럼 마이그레이션 이름을 지정해 실행합니다.
+
+```bash
+docker compose exec api pnpm prisma migrate dev --name init
 ```
 
 ## 주요 명령어

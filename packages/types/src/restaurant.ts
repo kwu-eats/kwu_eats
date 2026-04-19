@@ -1,4 +1,4 @@
-export type Zone = 'GWANGWOON_STATION' | 'FRONT_GATE' | 'BACK_GATE';
+export type Zone = 'KWANGWOON_STATION' | 'FRONT_GATE' | 'BACK_GATE';
 
 export interface BusinessHours {
   open?: string;
