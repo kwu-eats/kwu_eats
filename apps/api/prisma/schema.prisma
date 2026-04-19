@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Zone {
+  KWANGWOON_STATION
+  FRONT_GATE
+  BACK_GATE
+}
+
+enum ReportType {
+  RESTAURANT_INFO
+  MENU_CHANGE
+  NEW_RESTAURANT
+  CLOSED
+}
+
+enum ReportStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  APPLIED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+}
+
+model Restaurant {
+  id                   String               @id @default(cuid())
+  name                 String
+  zone                 Zone
+  latitude             Float
+  longitude            Float
+  address              String
+  phone                String?
+  businessHours        Json
+  isPartner            Boolean              @default(false)
+  partnerInfo          Json?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  menus                Menu[]
+  categories           RestaurantCategory[]
+  reports              Report[]
+
+  @@index([zone])
+  @@index([isPartner])
+  @@index([zone, isPartner])
+}
+
+model Menu {
+  id           String      @id @default(cuid())
+  restaurantId String
+  name         String
+  price        Int
+  imageUrl     String?
+  isSignature  Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  reports      Report[]
+
+  @@index([restaurantId])
+  @@index([restaurantId, isSignature])
+}
+
+model Category {
+  id          String               @id @default(cuid())
+  name        String               @unique
+  icon        String?
+  restaurants RestaurantCategory[]
+}
+
+model RestaurantCategory {
+  restaurantId String
+  categoryId   String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  category     Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([restaurantId, categoryId])
+  @@index([categoryId])
+}
+
+model Report {
+  id              String       @id @default(cuid())
+  type            ReportType
+  restaurantId    String?
+  menuId          String?
+  reporterName    String?
+  reporterContact String?
+  content         String       @db.Text
+  suggestedData   Json
+  imageUrls       String[]
+  status          ReportStatus @default(PENDING)
+  adminNote       String?      @db.Text
+  reviewedById    String?
+  reviewedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  restaurant      Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  menu            Menu?        @relation(fields: [menuId], references: [id], onDelete: SetNull)
+  reviewedBy      Admin?       @relation("ReviewedReports", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([restaurantId])
+  @@index([menuId])
+  @@index([reviewedById])
+  @@index([status, createdAt])
+}
+
+model Admin {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  name            String
+  role            AdminRole @default(ADMIN)
+  reviewedReports Report[] @relation("ReviewedReports")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

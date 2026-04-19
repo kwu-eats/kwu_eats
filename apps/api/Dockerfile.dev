@@ -1,0 +1,21 @@
+FROM node:20-alpine
+
+WORKDIR /workspace
+
+RUN apk add --no-cache openssl \
+  && corepack enable
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/types/package.json packages/types/package.json
+
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+
+WORKDIR /workspace/apps/api
+
+EXPOSE 4000
+
+CMD ["pnpm", "dev"]
