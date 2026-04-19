@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pangchelin-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - '5432:5432'
+    volumes:
+      - pangchelin_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pangchelin-network
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.dev
+    container_name: pangchelin-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+      - apps/api/.env
+    environment:
+      CI: 'true'
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      PORT: ${API_PORT:-4000}
+      CHOKIDAR_USEPOLLING: 'true'
+    ports:
+      - '${API_PORT:-4000}:4000'
+    volumes:
+      - .:/workspace
+      - api_node_modules:/workspace/node_modules
+      - api_app_node_modules:/workspace/apps/api/node_modules
+    command: sh -c "pnpm install --frozen-lockfile --config.confirmModulesPurge=false && pnpm dev"
+    networks:
+      - pangchelin-network
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.dev
+    container_name: pangchelin-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    env_file:
+      - .env
+      - apps/web/.env
+    environment:
+      CI: 'true'
+      PORT: ${WEB_PORT:-3000}
+      CHOKIDAR_USEPOLLING: 'true'
+      WATCHPACK_POLLING: 'true'
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    volumes:
+      - .:/workspace
+      - web_node_modules:/workspace/node_modules
+      - web_app_node_modules:/workspace/apps/web/node_modules
+      - web_next_cache:/workspace/apps/web/.next
+    command: sh -c "pnpm install --frozen-lockfile --config.confirmModulesPurge=false && pnpm dev --hostname 0.0.0.0"
+    networks:
+      - pangchelin-network
+
+volumes:
+  pangchelin_postgres_data:
+  api_node_modules:
+  api_app_node_modules:
+  web_node_modules:
+  web_app_node_modules:
+  web_next_cache:
+
+networks:
+  pangchelin-network:
+    driver: bridge

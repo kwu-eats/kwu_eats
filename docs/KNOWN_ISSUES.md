@@ -97,6 +97,35 @@ input, textarea, select {
 
 > 이슈가 발생하면 여기에 추가하세요.
 
+<details>
+<summary>#1. Docker daemon 미실행 상태에서 compose 검증 불가</summary>
+
+**발생일**: 2026-04-20
+**카테고리**: Docker
+**심각도**: 🟡 Major
+**작성자**: Codex
+
+#### 증상
+- `docker compose up --build -d` 실행 시 Docker daemon에 연결하지 못하고 즉시 실패
+- 에러: `Cannot connect to the Docker daemon at unix:///Users/choejeong-in/.docker/run/docker.sock`
+
+#### 원인
+- Docker Desktop 또는 Docker daemon이 실행 중이 아니어서 로컬 소켓이 열려 있지 않음
+
+#### 해결 방법
+- Docker Desktop을 실행한 뒤 다시 `docker compose up --build -d` 수행
+- 상태 확인: `docker info` 또는 `docker compose ps`
+
+#### 재발 방지
+- [ ] CLAUDE.md에 규칙 추가
+- [x] checklist.md에 작업 시작 전 `docker compose ps` 점검 항목 존재
+- [ ] 코드에 주석/lint 룰 추가
+
+#### 참고 링크
+- https://docs.docker.com/desktop/
+
+</details>
+
 ---
 
 ### 🗄️ Database (PostgreSQL)
