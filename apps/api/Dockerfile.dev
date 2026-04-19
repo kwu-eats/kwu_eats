@@ -2,7 +2,8 @@ FROM node:20-alpine
 
 WORKDIR /workspace
 
-RUN corepack enable
+RUN apk add --no-cache openssl \
+  && corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
