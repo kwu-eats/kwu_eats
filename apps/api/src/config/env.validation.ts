@@ -1,4 +1,4 @@
-import Joi = require('joi');
+import * as Joi from 'joi';
 
 export const envValidationSchema = Joi.object({
   DATABASE_URL: Joi.string().uri({ scheme: ['postgresql', 'postgres'] }).required(),
