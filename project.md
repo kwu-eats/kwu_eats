@@ -1,0 +1,1231 @@
+# 팡슐랭 Claude Code 개발 프롬프트
+
+> VSCode의 Claude Code에 아래 프롬프트를 **순서대로** 복사해서 붙여넣으세요.
+> 각 스텝은 이전 스텝이 완료된 것을 전제로 합니다.
+> 프롬프트 실행 후 반드시 결과를 **리뷰하고 이해한 뒤** 다음 스텝으로 진행하세요.
+
+---
+
+## 📋 프로젝트 기본 정보 (Claude Code에게 먼저 전달)
+
+```
+이 프로젝트는 "팡슐랭"이라는 광운대학교 맛집 추천 웹서비스입니다.
+
+기술 스택:
+- Frontend: Next.js 14+ (App Router), TypeScript, Tailwind CSS
+- Backend: NestJS, TypeScript, Prisma ORM
+- Database: PostgreSQL
+- 지도: 카카오맵 JavaScript SDK
+- 상태 관리: Zustand + TanStack Query
+- 컨테이너: Docker + Docker Compose (통합 배포)
+
+📱 플랫폼 우선순위: 모바일 웹 우선 (Mobile-First)
+- 90% 이상 모바일 접속 예상 (광운대 학생이 등하교 길에 한 손으로 사용)
+- 모든 컴포넌트는 모바일 기준으로 먼저 설계, 데스크톱은 확장
+- 최소 탭 타겟 44x44px (주요 액션 48px)
+- input/select/textarea는 font-size: 16px 고정 (iOS 줌 방지)
+- safe-area-inset 활용 (노치, 홈바 대응)
+- 한 손 조작 고려 (주요 액션은 화면 하단 배치)
+- 애니메이션 최소화 + prefers-reduced-motion 대응
+
+주요 기능:
+1. 구역별 식당 검색 (광운대역/정문/후문)
+2. 메뉴·가격 정보 조회 (직접 촬영 메뉴판 기반)
+3. 카테고리 및 예산 필터
+4. 제휴 식당 지도 마커 표시
+5. 영업 상태 색상 구분 (영업중/마감)
+6. 카카오맵 기반 지도 UI 및 길찾기
+7. 사용자 제보 → 관리자 검토 → 반영 워크플로우
+
+디자인 방향:
+- 컨셉: 따뜻한 대학가 분식집 감성 + 미슐랭 가이드의 위트
+- 컬러: 토마토 레드(#D85A30) + 머스터드(#EF9F27) + 크림(#FAF7F2)
+- 폰트: RIDIBatang(제목) + Pretendard(본문) + IBM Plex Sans KR(가격)
+
+DB 테이블 구조:
+- restaurants (식당)
+- menus (메뉴) - restaurants와 1:N CASCADE DELETE
+- categories (카테고리)
+- restaurant_categories (N:M 중간 테이블)
+- reports (사용자 제보)
+- admins (관리자 계정)
+
+배포 방식:
+- Docker Compose로 web, api, postgres 컨테이너 통합 운영
+- 개발/프로덕션 환경 분리 (docker-compose.yml / docker-compose.prod.yml)
+
+이 정보를 기반으로 개발을 진행할 예정입니다.
+```
+
+---
+
+# Phase 1: 프로젝트 초기 세팅
+
+## Step 1-1. 프로젝트 구조 생성
+
+```
+pangchelin이라는 프로젝트를 pnpm workspace monorepo로 세팅해줘.
+
+요구사항:
+- apps/web (Next.js 14 App Router + TypeScript + Tailwind CSS)
+- apps/api (NestJS + TypeScript)
+- packages/types (프론트/백 공통 타입 패키지)
+- 루트에 pnpm-workspace.yaml, .gitignore, .dockerignore, README.md 생성
+- Node.js 20 LTS 기준
+
+.gitignore에는 node_modules, .next, dist, .env, *.local, 
+docker volumes 등 모두 포함.
+
+.dockerignore에는 node_modules, .git, .env, .next, dist, 
+README.md 등 Docker 빌드에 불필요한 것들 포함.
+
+README.md에는 프로젝트 소개와 Docker 기반 개발 환경 세팅 방법
+(docker-compose up만으로 전체 스택이 뜨는 방식)을 간단히 작성해줘.
+```
+
+---
+
+## Step 1-2. ESLint + Prettier 통일 설정
+
+```
+apps/web과 apps/api에 동일한 ESLint + Prettier 설정을 적용하고 싶어.
+
+요구사항:
+- 루트에 공통 .eslintrc.js와 .prettierrc 작성
+- 각 앱은 루트 설정을 extends
+- import 순서 자동 정렬 (eslint-plugin-import)
+- TypeScript strict mode 활성화
+- 세미콜론 사용, single quote, 2-space indent
+
+VSCode 저장 시 자동 포맷팅되도록 .vscode/settings.json도 만들어줘.
+```
+
+---
+
+## Step 1-3. 환경변수 관리 세팅
+
+```
+apps/web과 apps/api에 환경변수를 분리해서 관리하고 싶어.
+
+요구사항:
+- 루트 .env.example (Docker Compose용 공통)
+  - POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+  - API_PORT, WEB_PORT
+- apps/api/.env.example 
+  - DATABASE_URL (docker 내부: postgresql://user:pass@postgres:5432/db)
+  - JWT_SECRET, PORT
+  - CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+  - CORS_ORIGIN
+- apps/web/.env.example
+  - NEXT_PUBLIC_API_URL
+  - NEXT_PUBLIC_KAKAO_MAP_KEY
+
+각 앱에서 환경변수 타입 안정성 확보:
+- apps/api는 @nestjs/config + joi validation
+- apps/web은 zod 기반 env.ts 파일
+
+절대로 실제 키 값은 넣지 말고 .env.example만 작성해줘.
+```
+
+---
+
+## Step 1-4. Docker Compose 기본 환경 구성
+
+```
+pangchelin 프로젝트 루트에 Docker Compose 개발 환경을 세팅해줘.
+
+docker-compose.yml 요구사항:
+- 3개 서비스: postgres, api, web
+- postgres: 
+  - image: postgres:16-alpine
+  - 환경변수: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+  - volume으로 데이터 영속화 (pangchelin_postgres_data)
+  - healthcheck 설정 (pg_isready)
+  - 포트: 5432
+- api:
+  - build: ./apps/api (개발용 Dockerfile.dev)
+  - depends_on postgres (healthy 상태 대기)
+  - volume으로 소스 코드 마운트 (핫 리로드)
+  - node_modules는 anonymous volume으로 보호
+  - 포트: 4000
+  - DATABASE_URL은 postgres 컨테이너 이름 참조
+- web:
+  - build: ./apps/web (개발용 Dockerfile.dev)
+  - depends_on api
+  - volume으로 소스 코드 마운트 (핫 리로드)
+  - node_modules, .next는 anonymous volume
+  - 포트: 3000
+
+네트워크: 
+- 내부 네트워크 하나 생성 (pangchelin-network)
+
+개발용 Dockerfile.dev도 함께 작성:
+- apps/api/Dockerfile.dev: node:20-alpine 기반, pnpm install 후 nest start --watch
+- apps/web/Dockerfile.dev: node:20-alpine 기반, pnpm install 후 next dev
+
+docker compose up만으로 전체 스택이 뜨도록 해줘.
+```
+
+---
+
+# Phase 2: Database 및 Backend 기초
+
+## Step 2-1. Prisma 스키마 작성 (reports, admins 포함)
+
+```
+apps/api에 Prisma를 세팅하고 schema.prisma를 작성해줘.
+
+테이블 요구사항:
+
+1. Restaurant (식당)
+   - id (cuid)
+   - name (string)
+   - zone (enum: GWANGWOON_STATION, FRONT_GATE, BACK_GATE)
+   - latitude, longitude (float)
+   - address (string)
+   - phone (string, optional)
+   - businessHours (Json) - 요일별 영업시간
+   - isPartner (boolean, default false)
+   - partnerInfo (Json, optional)
+   - createdAt, updatedAt
+   - menus (1:N, CASCADE DELETE)
+   - categories (N:M via RestaurantCategory)
+   - reports (1:N - 해당 식당 관련 제보들)
+
+2. Menu (메뉴)
+   - id (cuid)
+   - restaurantId (FK, CASCADE DELETE)
+   - name (string)
+   - price (int)
+   - imageUrl (string, optional)
+   - isSignature (boolean, default false)
+   - createdAt, updatedAt
+
+3. Category (카테고리)
+   - id (cuid)
+   - name (string, unique)
+   - icon (string, optional)
+   - restaurants (N:M)
+
+4. RestaurantCategory (N:M 중간 테이블)
+   - restaurantId, categoryId (composite PK)
+
+5. Report (사용자 제보) ← 신규
+   - id (cuid)
+   - type (enum: RESTAURANT_INFO | MENU_CHANGE | NEW_RESTAURANT | CLOSED)
+   - restaurantId (FK, nullable) - 신규 식당 제보는 NULL
+   - menuId (FK, nullable)
+   - reporterName (string, optional)
+   - reporterContact (string, optional)
+   - content (text)
+   - suggestedData (Json) - 수정/추가 제안 데이터
+   - imageUrls (string[], default []) - 증빙 사진
+   - status (enum: PENDING | APPROVED | REJECTED | APPLIED, default PENDING)
+   - adminNote (text, optional) - 검토 메모/반려 사유
+   - reviewedById (FK → Admin, nullable)
+   - reviewedAt (DateTime, nullable)
+   - createdAt, updatedAt
+   - 인덱스: status, createdAt, restaurantId
+
+6. Admin (관리자 계정) ← 신규
+   - id (cuid)
+   - email (string, unique)
+   - passwordHash (string)
+   - name (string)
+   - role (enum: SUPER_ADMIN | ADMIN, default ADMIN)
+   - reviewedReports (1:N - 이 관리자가 검토한 제보들)
+   - createdAt, updatedAt
+
+인덱스도 적절히 추가해줘 (zone, isPartner, status, createdAt 등).
+```
+
+---
+
+## Step 2-2. Prisma 마이그레이션 및 시드 데이터
+
+```
+방금 작성한 Prisma 스키마로 초기 마이그레이션을 생성하고,
+개발용 시드 데이터를 작성해줘.
+
+시드 데이터 요구사항:
+- Admin 계정 1개 (email: admin@pangchelin.dev, 비밀번호는 bcrypt 해시)
+- Category 7개 (한식/중식/일식/양식/분식/카페/주점)
+- Restaurant 샘플 5개 (각 zone별로 분산)
+- 각 Restaurant에 메뉴 3~5개
+- 일부 Restaurant은 isPartner = true
+- Report 샘플 3개 (각 type별로, 일부는 PENDING, 일부는 APPROVED)
+- businessHours JSON 구조:
+  {
+    "mon": { "open": "09:00", "close": "22:00" },
+    "tue": { "open": "09:00", "close": "22:00" },
+    ...
+    "sun": { "closed": true }
+  }
+
+prisma/seed.ts로 작성하고 package.json에 "prisma:seed" 스크립트 추가.
+
+Docker 환경에서 실행할 수 있도록 아래 명령도 README에 문서화:
+docker compose exec api pnpm prisma migrate dev
+docker compose exec api pnpm prisma:seed
+```
+
+---
+
+## Step 2-3. NestJS 기본 구조 세팅
+
+```
+apps/api에 NestJS 기본 구조를 세팅해줘.
+
+요구사항:
+- main.ts에 CORS 설정 (CORS_ORIGIN 환경변수 기반)
+- ValidationPipe 전역 적용 (whitelist, transform 활성화)
+- Swagger 설정 (/api/docs)
+- PrismaModule 생성 (src/prisma/)
+  - PrismaService (onModuleInit에서 $connect)
+  - Global module
+- 전역 예외 필터 (HttpException 포맷 통일)
+- health check 엔드포인트 (/health)
+
+폴더 구조:
+src/
+├── prisma/
+├── restaurants/
+├── menus/
+├── categories/
+├── reports/        ← 신규
+├── admin/          ← 관리자 전용 기능 모음
+│   ├── reports/    ← 제보 검토 기능
+│   └── ...
+├── auth/
+├── common/
+└── main.ts
+```
+
+---
+
+# Phase 3: Backend API 개발
+
+## Step 3-1. Categories 모듈 (가장 단순한 것부터)
+
+```
+NestJS에 Categories 모듈을 만들어줘.
+
+요구사항:
+- CategoriesModule, Controller, Service 생성
+- Prisma로 CRUD 구현
+- DTO: CreateCategoryDto, UpdateCategoryDto (class-validator)
+- 엔드포인트:
+  - GET /categories - 전체 조회
+  - GET /categories/:id - 단일 조회
+  - POST /categories (나중에 Admin Guard 적용)
+  - PATCH /categories/:id
+  - DELETE /categories/:id
+- Swagger 데코레이터로 문서화
+
+packages/types에 Category 공통 타입도 export.
+```
+
+---
+
+## Step 3-2. Restaurants 모듈 (필터링 포함)
+
+```
+NestJS에 Restaurants 모듈을 만들어줘.
+
+엔드포인트:
+- GET /restaurants
+  쿼리 파라미터:
+  - zone?: GWANGWOON_STATION | FRONT_GATE | BACK_GATE
+  - categoryId?: string
+  - maxPrice?: number
+  - isPartner?: boolean
+  - isOpen?: boolean (현재 시각 기준 영업중)
+  응답: Restaurant 목록 + 카테고리 + 대표 메뉴 1개
+
+- GET /restaurants/:id
+  응답: Restaurant 상세 + 전체 메뉴 + 카테고리
+
+- POST /restaurants (Admin)
+- PATCH /restaurants/:id (Admin)
+- DELETE /restaurants/:id (Admin)
+
+isOpen 필터는 businessHours JSON을 파싱해서 
+현재 요일·시각과 비교. 이 로직은 
+common/utils/business-hours.util.ts로 분리.
+
+Swagger 문서화 필수.
+```
+
+---
+
+## Step 3-3. Menus 모듈
+
+```
+NestJS에 Menus 모듈을 만들어줘.
+
+엔드포인트:
+- GET /restaurants/:restaurantId/menus
+- POST /restaurants/:restaurantId/menus (Admin)
+- PATCH /menus/:id (Admin)
+- DELETE /menus/:id (Admin)
+
+DTO:
+- CreateMenuDto: name, price, imageUrl?, isSignature?
+- UpdateMenuDto: PartialType(CreateMenuDto)
+
+식당이 존재하지 않으면 404 반환.
+```
+
+---
+
+## Step 3-4. 관리자 인증 (JWT + Admin 테이블)
+
+```
+NestJS에 Auth 모듈을 만들어줘. DB의 admins 테이블을 사용하는 
+관리자 로그인이야.
+
+요구사항:
+- @nestjs/jwt, @nestjs/passport, passport-jwt, bcrypt 사용
+- Admin 테이블 기반 인증 (seed로 생성된 admin 계정 활용)
+
+엔드포인트:
+- POST /auth/login
+  body: { email, password }
+  응답: { accessToken, admin: { id, email, name, role } }
+
+구현:
+- LocalStrategy (로그인용)
+- JwtStrategy (토큰 검증용)
+- JwtAuthGuard
+- @CurrentAdmin() 데코레이터 (req.user에서 admin 정보 추출)
+- @AdminOnly() 데코레이터 (관리자 전용 API에 적용)
+
+이전에 만든 Restaurants/Categories/Menus의 POST/PATCH/DELETE에 
+JwtAuthGuard 적용.
+```
+
+---
+
+## Step 3-5. Reports 모듈 (사용자 제보 접수)
+
+```
+NestJS에 Reports 모듈을 만들어줘. 사용자가 잘못된 정보를 
+제보하면 관리자가 검토해서 반영하는 구조야.
+
+공개 엔드포인트 (인증 불필요):
+- POST /reports
+  body:
+  {
+    type: 'RESTAURANT_INFO' | 'MENU_CHANGE' | 'NEW_RESTAURANT' | 'CLOSED',
+    restaurantId?: string,  // NEW_RESTAURANT 외에는 필수
+    menuId?: string,        // MENU_CHANGE일 때 사용
+    reporterName?: string,
+    reporterContact?: string,
+    content: string,        // 제보 내용 설명
+    suggestedData: object,  // type에 따라 구조 다름
+    imageUrls?: string[]    // 증빙 사진 URL
+  }
+  
+  응답: { id, status: 'PENDING', createdAt }
+
+요구사항:
+- DTO는 type별로 suggestedData 구조를 검증하도록 discriminated union
+  - RESTAURANT_INFO: { businessHours?, phone?, address?, ... }
+  - MENU_CHANGE: { menuName, oldPrice?, newPrice?, action: 'UPDATE'|'ADD'|'DELETE' }
+  - NEW_RESTAURANT: { name, address, latitude, longitude, menus?: [...] }
+  - CLOSED: { reason?: string }
+- restaurantId가 있으면 실제 존재하는 식당인지 검증
+- Rate limiting 적용 (@nestjs/throttler, IP 기준 분당 5회)
+- Swagger 문서화
+
+packages/types에 Report 관련 타입들 export.
+이 엔드포인트는 인증 없이 누구나 호출 가능하므로 검증 꼼꼼히.
+```
+
+---
+
+## Step 3-6. Admin Reports 모듈 (제보 검토)
+
+```
+NestJS에 Admin Reports 모듈을 만들어줘. 관리자가 사용자 제보를 
+검토하고 승인/반려하는 기능이야.
+
+모든 엔드포인트에 JwtAuthGuard 적용.
+
+엔드포인트:
+
+1. GET /admin/reports
+   쿼리: status?, type?, page?, limit?
+   응답: 제보 목록 (페이지네이션), 최신순 정렬
+   - 관련 restaurant, menu, reviewedBy admin 정보 포함
+
+2. GET /admin/reports/:id
+   응답: 제보 상세
+   - type별로 기존 데이터와 suggestedData를 비교할 수 있도록
+     currentData 필드 포함 (예: RESTAURANT_INFO면 해당 식당의 현재 정보)
+
+3. POST /admin/reports/:id/approve
+   body: { applyNow?: boolean, editedData?: object }
+   - applyNow=true면 suggestedData(또는 editedData)를 실제 데이터에 반영
+     - RESTAURANT_INFO → restaurants 테이블 업데이트
+     - MENU_CHANGE → menus 테이블 CRUD
+     - NEW_RESTAURANT → restaurants 생성 + menus 생성
+     - CLOSED → restaurants에 isClosed 플래그 또는 삭제 처리
+   - status를 APPROVED 또는 APPLIED로 업데이트
+   - reviewedById, reviewedAt 기록
+   - 트랜잭션 처리 필수 (Prisma $transaction)
+   
+4. POST /admin/reports/:id/reject
+   body: { reason: string }  // 반려 사유 필수
+   - status를 REJECTED로 업데이트
+   - adminNote에 사유 저장
+   - reviewedById, reviewedAt 기록
+
+5. GET /admin/reports/stats
+   응답:
+   {
+     total: number,
+     pending: number,
+     approved: number,
+     rejected: number,
+     applied: number,
+     thisWeek: { reports: number, approved: number },
+     thisMonth: { reports: number, approved: number }
+   }
+
+승인 시 데이터 반영 로직이 복잡하므로 
+AdminReportsService의 applyReport() 메서드를 type별로 잘 분리해서 작성.
+트랜잭션 안에서 report status 업데이트 + 실제 데이터 반영을 원자적으로.
+```
+
+---
+
+## Step 3-7. 이미지 업로드 API
+
+```
+NestJS에 Cloudinary 기반 이미지 업로드 기능을 추가해줘.
+
+엔드포인트:
+- POST /upload (인증 불필요, 제보 사진용)
+  - multipart/form-data, field: "file"
+  - 이미지만 허용 (jpg, jpeg, png, webp)
+  - 최대 5MB
+  - Rate limiting 적용 (IP 기준 분당 10회)
+  - 응답: { url: string, publicId: string }
+
+- POST /admin/upload (JwtAuthGuard 적용, 관리자용)
+  - 동일 스펙, 관리자는 rate limit 완화
+
+Cloudinary SDK 사용:
+- CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET 환경변수
+- 업로드 폴더 분리: pangchelin/reports/, pangchelin/restaurants/
+```
+
+---
+
+# Phase 4: Frontend 개발
+
+## Step 4-1. Next.js 모바일 우선 레이아웃 및 글로벌 스타일
+
+```
+apps/web에 Next.js 모바일 우선 레이아웃을 만들어줘.
+팡슐랭은 광운대 학생이 모바일로 접속하는 서비스가 메인이야.
+
+요구사항:
+
+1. app/layout.tsx
+   - viewport meta 설정:
+     {
+       width: 'device-width',
+       initialScale: 1,
+       maximumScale: 1,          // 지도 서비스는 페이지 줌 방지
+       userScalable: false,
+       viewportFit: 'cover',     // 노치 대응
+       themeColor: '#D85A30',    // 상태바 색상
+     }
+   - TanStack Query Provider
+   - 전역 토스트 Provider (sonner 또는 react-hot-toast)
+
+2. app/globals.css
+   - CSS 변수로 디자인 토큰 정의 (컬러, 폰트, radius 등)
+   - safe-area-inset 유틸리티 클래스
+   - iOS 줌 방지: input, textarea, select { font-size: 16px }
+   - @media (hover: hover)로 hover 스타일 조건부 적용
+   - prefers-reduced-motion 대응
+
+3. tailwind.config.ts
+   - 커스텀 색상: primary(토마토 레드), accent(머스터드), canvas, muted 등
+   - 커스텀 폰트: display(RIDIBatang), body(Pretendard), accent(IBM Plex Sans KR)
+   - 모바일 우선 브레이크포인트: xs(360), sm(640), md(768), lg(1024)
+   - 최소 탭 타겟 유틸리티: min-h-touch(44px), min-h-touch-lg(48px)
+   - safe-area spacing: pt-safe-top, pb-safe-bottom
+
+4. components/layout/MobileHeader.tsx
+   - 높이 56px
+   - safe-area-inset-top 패딩 적용
+   - 좌측: 팡슐랭 로고 + 이름
+   - 우측: 햄버거 메뉴 (44x44px 탭 타겟)
+   - sticky top
+
+5. components/layout/BottomSheet.tsx (핵심 컴포넌트!)
+   - 카카오맵/배민 스타일 바텀 시트
+   - 3단계: peek(~120px) / half(~50vh) / full(~90vh)
+   - 드래그 핸들 (36x4px, 상단 중앙)
+   - Framer Motion으로 드래그 제스처
+   - safe-area-inset-bottom 패딩
+
+상태 관리:
+- lib/stores/filterStore.ts: zone, category, maxPrice, isOpen
+- lib/stores/sheetStore.ts: 바텀 시트 상태 (peek/half/full)
+
+pnpm으로 설치할 패키지:
+- framer-motion, zustand, @tanstack/react-query, lucide-react, sonner
+```
+
+---
+
+## Step 4-2. API 클라이언트 레이어
+
+```
+apps/web에 백엔드 API 호출 레이어를 만들어줘.
+
+요구사항:
+- lib/api/client.ts: fetch 래퍼 (baseURL, 에러 처리, JSON 파싱)
+  - 인증 토큰 자동 첨부 (admin용)
+- lib/api/restaurants.ts
+- lib/api/categories.ts
+- lib/api/menus.ts
+- lib/api/reports.ts (제보 접수, 관리자 검토용)
+- lib/api/auth.ts (관리자 로그인)
+
+- hooks/queries/useRestaurants.ts
+- hooks/queries/useCategories.ts
+- hooks/queries/useReports.ts (관리자용)
+- hooks/mutations/useSubmitReport.ts (사용자 제보용)
+
+packages/types의 공통 타입 활용.
+NEXT_PUBLIC_API_URL 환경변수 사용.
+```
+
+---
+
+## Step 4-3. 카카오맵 연동 (모바일 최적화)
+
+```
+apps/web에 카카오맵을 모바일 우선으로 연동해줘.
+
+요구사항:
+
+1. components/map/KakaoMap.tsx
+   - Next.js Script 컴포넌트로 SDK 동적 로딩 (strategy="afterInteractive")
+   - NEXT_PUBLIC_KAKAO_MAP_KEY 환경변수
+   - 광운대 중심 좌표 (37.6192, 127.0589)
+   - 전체 화면 지도 (모바일 기본 레이아웃)
+   - 제스처 지원: 핀치 줌, 드래그 팬 (카카오맵 기본 제공)
+   - 더블탭 줌은 유지 (지도 UX의 핵심)
+
+2. components/map/RestaurantMarker.tsx
+   - 핀 모양 마커 (상단 원 + 하단 뾰족)
+   - 크기: 기본 30px, 선택 시 36px (모바일에서 잘 보이도록)
+   - 제휴 식당: 별(★) 심볼 + 아래 "제휴" 라벨
+   - 영업중/마감 색상 구분 (primary-500 / ink-muted)
+   - 선택 시 box-shadow 펄스 효과
+   - 탭 시 bounce 애니메이션
+
+3. components/map/MapFloatingButtons.tsx
+   - 플로팅 액션 버튼 (FAB)
+   - 현재 위치 버튼 (Geolocation API)
+   - 검색 버튼
+   - 크기: 44x44px, 둥근 원형
+   - 우측 배치 (바텀 시트 위로 16px)
+
+4. hooks/useKakaoMap.ts
+   - 로드 상태 관리
+   - window.kakao 타입 안정성 (types/kakao.d.ts)
+   - 마커 클러스터링 훅 (MarkerClusterer)
+
+5. hooks/useGeolocation.ts
+   - 현재 위치 가져오기 (navigator.geolocation)
+   - 권한 거부 시 fallback (광운대 중심 좌표)
+   - 에러 처리 및 토스트 알림
+
+모바일 주의사항:
+- 지도 위 오버레이는 pointer-events: none 처리하고 
+  버튼만 pointer-events: auto (지도 제스처 방해 방지)
+- 마커 탭 영역을 넉넉히 (최소 44px hit area)
+- iOS에서 주소창 숨김 시 레이아웃 튀는 것 방지 
+  (height: 100dvh 사용)
+```
+
+---
+
+## Step 4-4. 메인 지도 페이지 (모바일 바텀 시트 UX)
+
+```
+app/page.tsx를 메인 지도 페이지로 만들어줘.
+모바일 퍼스트로, 카카오맵 스타일의 바텀 시트 UX를 구현해.
+
+레이아웃 (모바일 기준):
+┌─────────────────────────┐
+│  Header (56px)          │ ← 로고 + 메뉴
+├─────────────────────────┤
+│ [정문][후문][광운대역]  │ ← 구역 탭 (3등분, 48px)
+│ [한식][분식][영업중]→   │ ← 필터 칩 (가로 스크롤, 40px)
+├─────────────────────────┤
+│                         │
+│      [전체 화면 지도]   │
+│                 [◎] FAB │
+│                 [⌕]     │
+│                         │
+├─────────────────────────┤
+│ ━━━━ (드래그 핸들)      │
+│ [식당 요약 카드]        │ ← Bottom Sheet (peek)
+└─────────────────────────┘
+
+구성 요소:
+
+1. components/filters/ZoneTabs.tsx
+   - 3개 구역 (정문/후문/광운대역)
+   - flex 3등분, 각각 min-height 48px
+   - 선택 시: bg-primary-900 text-primary-50
+   - 비선택: bg-white border-border text-ink-body
+   - Pill 스타일 (border-radius: full)
+
+2. components/filters/FilterChips.tsx
+   - 가로 스크롤 (overflow-x: auto, scrollbar hidden)
+   - 카테고리 멀티 선택 (한식/중식/일식/양식/분식/카페/주점)
+   - "영업중만" 토글
+   - "예산" 슬라이더 (모달로 열림: 5,000원 ~ 20,000원)
+   - scroll-snap-type: x proximity
+
+3. components/restaurant/BottomSheetContent.tsx
+   - 바텀 시트 내부 내용
+   - Peek 상태: 가까운 식당 요약 카드 1개
+   - Half 상태: 식당 리스트 (스크롤 가능)
+   - Full 상태: 전체 리스트 + 검색창
+   - 각 상태 전환 시 자연스러운 애니메이션
+
+4. components/restaurant/RestaurantListItem.tsx
+   - 모바일용 식당 카드
+   - 52x52px 썸네일 + 정보
+   - 이름 + 제휴 배지 + 영업 상태
+   - 카테고리 · 구역 · 거리 · 평점
+   - 대표 메뉴 + 가격 (가격은 primary 컬러)
+   - 탭 시 /restaurants/[id]로 이동
+   - active:bg-primary-50 피드백
+   - 전체 영역이 탭 가능 (min-height: 72px)
+
+상태 관리:
+- filterStore: 필터 상태
+- sheetStore: peek/half/full 상태
+- 마커 탭 시 → sheetStore를 peek로 설정하고 해당 식당을 맨 위로
+
+데이터 fetching:
+- useRestaurants(filters) 훅 사용
+- 필터 변경 시 debounce 300ms
+- 로딩 스켈레톤 표시 (spinner 금지)
+- 에러 시 친근한 메시지: "앗, 잠시 후 다시 시도해주세요"
+
+iOS Safari 특이사항 처리:
+- 주소창 숨김 시 레이아웃 튀는 것 방지: 100dvh 사용
+- 스크롤 바운스 방지: overscroll-behavior: contain (바텀 시트 내부)
+
+데스크톱 확장 (≥1024px):
+- 좌측 380px 패널에 식당 리스트 고정
+- 우측 지도
+- 바텀 시트 대신 패널 표시
+```
+
+---
+
+## Step 4-5. 식당 상세 페이지 (모바일 최적화)
+
+```
+app/restaurants/[id]/page.tsx를 모바일 우선으로 만들어줘.
+
+모바일 레이아웃:
+┌─────────────────────────┐
+│ [←]                 [⋮] │ ← Sticky Header
+├─────────────────────────┤
+│                         │
+│   [Hero 이미지 16:10]   │
+│                         │
+├─────────────────────────┤
+│ 할매분식 [제휴][영업중] │
+│ 분식 · ★ 4.6           │
+├─────────────────────────┤
+│ 📍 주소...              │
+│ ⏰ 영업시간...          │
+│ 📞 전화번호             │
+├─────────────────────────┤
+│ 메뉴                    │
+│ [메뉴 아이템들]         │
+├─────────────────────────┤
+│ [ 길찾기 ] [ 제보하기 ] │ ← Sticky Bottom Bar
+└─────────────────────────┘
+
+구성 요소:
+
+1. components/restaurant/RestaurantHero.tsx
+   - 대표 사진 16:10 비율
+   - next/image로 최적화 (sizes, priority)
+   - 여러 장일 경우 가로 스와이프 갤러리 (Swiper.js)
+
+2. components/restaurant/RestaurantInfo.tsx
+   - 식당 이름 (display 폰트, 22px)
+   - 제휴/영업 배지
+   - 카테고리 + 평점
+
+3. components/restaurant/BusinessHours.tsx
+   - 요일별 영업시간 테이블
+   - 현재 요일 하이라이트
+   - "오늘은 22:00까지" 같은 친근한 문구
+   - 휴무일은 "쉬어요" 표시
+
+4. components/restaurant/MenuList.tsx
+   - 메뉴 카드 리스트 (수직 스크롤)
+   - 각 메뉴: 사진(썸네일) + 이름 + 가격
+   - Signature 메뉴는 "추천" 배지
+   - 가격은 primary-500 강조
+
+5. components/restaurant/StickyBottomBar.tsx
+   - 화면 하단 고정 (safe-area-inset-bottom 패딩)
+   - 2개 버튼: "길찾기" (secondary) / "정보 제보" (primary)
+   - "길찾기" 클릭 시 카카오맵 앱 딥링크 
+     (kakaomap://route?sp=...&ep=...&by=FOOT)
+   - 앱 없으면 웹 카카오맵으로 fallback
+
+모바일 스크롤 UX:
+- 상단 Hero 이미지는 스크롤 시 패럴랙스 효과 (선택)
+- 헤더가 스크롤에 따라 투명 → 불투명 전환
+- 스크롤 시 식당 이름이 헤더에 페이드인
+
+SSR로 초기 데이터 렌더링 (SEO):
+- generateMetadata로 식당 이름을 title에 반영
+- 서버 컴포넌트에서 데이터 fetch
+- Open Graph 태그 (썸네일 + 이름 + 카테고리)
+
+관리자일 경우 상단에 "수정" 버튼 표시.
+```
+
+---
+
+## Step 4-6. 사용자 제보 페이지 (모바일 5단계 플로우)
+
+```
+사용자가 잘못된 정보나 신규 식당을 제보할 수 있는 UI를 만들어줘.
+모바일 기준으로 한 화면에 한 단계씩 보여주는 방식.
+
+구성:
+1. app/report/page.tsx: 5단계 제보 플로우
+2. components/reports/ReportStepper.tsx: 단계 표시 컴포넌트
+3. components/reports/ReportForm.tsx: 공통 폼
+
+5단계 플로우:
+
+Step 1: 제보 타입 선택
+- 4개의 큰 카드 (세로 2x2 그리드, 각 카드 최소 80px)
+  ① 정보가 달라요 (RESTAURANT_INFO)
+  ② 메뉴가 바뀌었어요 (MENU_CHANGE)
+  ③ 새 식당 알려드려요 (NEW_RESTAURANT)
+  ④ 폐업한 것 같아요 (CLOSED)
+- 각 카드에 아이콘 + 제목 + 짧은 설명
+
+Step 2: 대상 식당 선택
+- RESTAURANT_INFO/MENU_CHANGE/CLOSED: 식당 검색 (쿼리 파라미터로 받은 경우 skip)
+- NEW_RESTAURANT: 건너뛰기
+
+Step 3: 수정/추가 내용 입력
+- 타입별 동적 폼
+  - RESTAURANT_INFO: 수정할 항목 선택 → 새 값
+  - MENU_CHANGE: 메뉴 선택 + 변경 내용
+  - NEW_RESTAURANT: 식당명 + 주소(지도 클릭) + 카테고리 + 메뉴들
+  - CLOSED: 간단한 확인
+
+Step 4: 증빙 사진 업로드 (선택)
+- 카메라/앨범에서 선택 (input type="file" accept="image/*" capture)
+- 최대 3장, 각 5MB
+- 업로드 중 프로그레스 표시
+
+Step 5: 제보자 정보 + 제출 (선택사항)
+- 이름, 연락처 (익명 가능 안내)
+- 최종 확인 후 제출
+
+공통 UX:
+- 상단: 단계 진행 바 (1/5, 2/5...)
+- 하단: "이전" / "다음" 버튼 (sticky, 높이 48px)
+- 마지막 단계만 "제출" 버튼 (primary)
+- iOS 키보드 올라올 때 레이아웃 대응 (visualViewport API)
+
+유효성 검증:
+- React Hook Form + Zod
+- Zod discriminated union으로 type별 suggestedData 검증
+- 각 단계 통과 못하면 "다음" 버튼 비활성
+
+성공 시:
+- 풀 스크린 성공 페이지
+- "알려주셔서 고마워요! 관리자 검토 후 반영할게요"
+- 애니메이션 (체크마크 + 페이드인)
+- "지도로 돌아가기" 버튼
+
+식당 상세 페이지에서 진입 시:
+- /report?restaurantId=xxx&type=RESTAURANT_INFO 로 이동
+- Step 2 자동 건너뛰기
+```
+
+---
+
+## Step 4-7. 관리자 로그인 및 레이아웃
+
+```
+apps/web에 관리자 페이지 기반을 만들어줘.
+
+페이지:
+- app/admin/login/page.tsx: 로그인 폼
+  - email, password 입력
+  - React Hook Form + Zod
+  - POST /auth/login 호출
+  - 성공 시 토큰 저장 + /admin/reports로 리다이렉트
+- app/admin/layout.tsx
+  - 로그인 안 된 상태면 /admin/login으로 리다이렉트
+  - 좌측 사이드바 (네비게이션)
+    - 제보 관리 (기본)
+    - 식당 관리
+    - 메뉴 관리
+    - 카테고리 관리
+    - 로그아웃
+
+토큰 관리:
+- httpOnly 쿠키가 이상적이지만 구현 복잡 → 
+  localStorage + Zustand로 관리 (학생 프로젝트 수준 타협)
+- lib/stores/authStore.ts: accessToken, admin 정보
+- API 호출 시 Authorization 헤더 자동 첨부
+```
+
+---
+
+## Step 4-8. 관리자 제보 검토 대시보드
+
+```
+관리자가 사용자 제보를 검토하고 승인/반려하는 대시보드를 만들어줘.
+
+페이지:
+- app/admin/reports/page.tsx: 제보 목록
+- app/admin/reports/[id]/page.tsx: 제보 상세 및 검토
+
+목록 페이지 (app/admin/reports/page.tsx):
+- 상단 통계 카드 (GET /admin/reports/stats 활용)
+  - 대기중 n건, 이번 주 제보 n건, 승인률 n%
+- 필터: 상태(전체/대기/승인/반려), 타입
+- 테이블:
+  - 제보 ID, 타입, 식당명(있으면), 제보 내용 미리보기, 상태, 제보일시
+  - 행 클릭 시 상세로 이동
+- 페이지네이션
+
+상세 페이지 (app/admin/reports/[id]/page.tsx):
+- 좌측: 제보 내용
+  - 제보자 정보 (있으면)
+  - content
+  - suggestedData (JSON을 보기 좋게 렌더링)
+  - 증빙 사진들 (imageUrls)
+- 우측: 현재 데이터 (currentData)
+  - 기존 데이터와 제안 데이터를 나란히 비교 (diff 뷰)
+  - 변경되는 필드는 하이라이트
+- 하단: 액션
+  - "승인 및 즉시 반영" 버튼
+    - 클릭 시 확인 다이얼로그
+    - 필요하면 제안 데이터를 수정한 뒤 반영 가능 (editedData)
+    - POST /admin/reports/:id/approve { applyNow: true, editedData? }
+  - "반려" 버튼
+    - 반려 사유 입력 모달
+    - POST /admin/reports/:id/reject { reason }
+  - "뒤로가기"
+
+NEW_RESTAURANT 타입은 지도에서 위치 확인이 중요하므로
+우측 패널에 작은 카카오맵으로 위치 미리보기 표시.
+```
+
+---
+
+## Step 4-9. 관리자 식당/메뉴 CRUD 페이지
+
+```
+app/admin 하위에 식당과 메뉴를 직접 관리하는 페이지를 만들어줘.
+
+페이지:
+- app/admin/restaurants/page.tsx: 식당 목록 + 추가 버튼
+- app/admin/restaurants/new/page.tsx: 식당 등록
+- app/admin/restaurants/[id]/page.tsx: 식당 수정 (메뉴 관리 포함)
+
+폼 요구사항:
+- React Hook Form + Zod
+- 이미지 업로드 (POST /admin/upload)
+- 카카오맵에서 위치 클릭으로 좌표 선택
+- businessHours는 요일별 시간 입력 UI (휴무일 체크박스 포함)
+- 카테고리는 체크박스 멀티 선택
+- 메뉴는 동적 추가/삭제 (useFieldArray)
+- 제휴 여부 체크 시 제휴 상세 정보 입력 필드 활성화
+```
+
+---
+
+# Phase 5: Docker 프로덕션 배포
+
+## Step 5-1. 프로덕션 Dockerfile 작성
+
+```
+apps/api와 apps/web에 프로덕션용 Dockerfile을 작성해줘.
+멀티스테이지 빌드로 이미지 크기를 최소화하는 게 목표.
+
+apps/api/Dockerfile:
+- Stage 1 (deps): node:20-alpine, pnpm install (프로덕션 의존성만)
+- Stage 2 (build): 
+  - 전체 의존성 설치
+  - Prisma generate
+  - TypeScript 빌드 (nest build)
+- Stage 3 (runner):
+  - node:20-alpine
+  - 비 root 유저 생성 및 사용
+  - dist, node_modules, prisma 복사
+  - CMD ["node", "dist/main"]
+- .dockerignore 활용 확인
+
+apps/web/Dockerfile:
+- Next.js standalone 빌드 활용 (next.config.js에 output: 'standalone' 추가)
+- Stage 1 (deps): pnpm install
+- Stage 2 (builder): next build
+- Stage 3 (runner):
+  - node:20-alpine
+  - 비 root 유저
+  - standalone 파일들만 복사 (.next/standalone, .next/static, public)
+  - CMD ["node", "server.js"]
+
+각 Dockerfile은 Docker BuildKit 캐시를 최대한 활용하도록 
+레이어 순서 최적화 (package.json 먼저 복사 → install → 소스 복사 → build).
+```
+
+---
+
+## Step 5-2. docker-compose.prod.yml 작성
+
+```
+프로덕션용 docker-compose.prod.yml을 작성해줘.
+
+서비스 구성:
+1. postgres
+   - image: postgres:16-alpine
+   - 환경변수는 .env.production에서 로드
+   - volume으로 데이터 영속화
+   - 백업을 위한 별도 볼륨 마운트 (/backups)
+   - restart: always
+
+2. api
+   - build: 
+     context: .
+     dockerfile: apps/api/Dockerfile
+   - depends_on: postgres (healthy)
+   - 환경변수: NODE_ENV=production, DATABASE_URL, JWT_SECRET, 
+             CLOUDINARY_*, CORS_ORIGIN
+   - restart: always
+   - healthcheck: GET /health
+
+3. web
+   - build:
+     context: .
+     dockerfile: apps/web/Dockerfile
+   - depends_on: api
+   - 환경변수: NODE_ENV=production, NEXT_PUBLIC_API_URL, 
+             NEXT_PUBLIC_KAKAO_MAP_KEY
+   - restart: always
+
+4. nginx (리버스 프록시)
+   - image: nginx:alpine
+   - ports: 80, 443
+   - volume:
+     - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+     - ./docker/nginx/certbot/conf:/etc/letsencrypt (SSL)
+   - depends_on: web, api
+
+docker/nginx/nginx.conf도 작성:
+- / → web:3000 프록시
+- /api → api:4000 프록시 (경로 rewrite)
+- gzip, 캐시 헤더 등 기본 최적화
+- (SSL은 배포 시점에 certbot으로 발급)
+
+docker-compose.prod.yml은 다음처럼 실행:
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+```
+
+---
+
+## Step 5-3. GitHub Actions CI/CD
+
+```
+GitHub Actions 워크플로우를 작성해줘.
+
+.github/workflows/ci.yml (PR 검증):
+- 트리거: PR to main or dev
+- Job 1: lint (apps/web, apps/api 각각)
+- Job 2: build (타입체크, 빌드 성공 확인)
+- Job 3: docker-build-check (Dockerfile이 빌드되는지만 확인)
+
+.github/workflows/deploy.yml (main 브랜치 배포):
+- 트리거: push to main
+- Job 1: 
+  - Docker 이미지 빌드
+  - Docker Hub 또는 GitHub Container Registry에 push
+- Job 2:
+  - SSH로 VPS 접속
+  - docker compose pull + up -d --force-recreate
+  - (또는 이미지 빌드를 VPS에서 직접)
+
+secrets로 관리할 것:
+- DOCKER_USERNAME, DOCKER_PASSWORD (또는 GHCR_TOKEN)
+- VPS_HOST, VPS_USER, VPS_SSH_KEY
+- 프로덕션 .env 값들 (필요 시)
+```
+
+---
+
+## Step 5-4. 모니터링 및 운영
+
+```
+운영 편의를 위한 스크립트와 문서를 만들어줘.
+
+1. scripts/backup-db.sh
+   - postgres 컨테이너에서 pg_dump 실행
+   - /backups 볼륨에 날짜별 파일 저장
+   - crontab 예시 제공 (매일 새벽 3시)
+
+2. scripts/restore-db.sh
+   - 백업 파일 지정해서 복원
+
+3. README에 운영 가이드 섹션 추가:
+   - 로그 확인: docker compose logs -f api
+   - 컨테이너 재시작: docker compose restart api
+   - DB 접속: docker compose exec postgres psql -U user db
+   - 마이그레이션 실행: docker compose exec api pnpm prisma migrate deploy
+   - 백업/복원 절차
+   - SSL 갱신 절차 (certbot)
+```
+
+---
+
+# Phase 6: 테스트 및 최종 점검
+
+## Step 6-1. E2E 테스트 (선택)
+
+```
+Playwright로 핵심 플로우 E2E 테스트를 작성해줘.
+
+테스트 시나리오:
+1. 메인 지도 페이지 진입 → 지도 렌더링
+2. "정문" 필터 선택 → 마커 필터링 확인
+3. 마커 클릭 → 요약 카드 표시
+4. "상세보기" 클릭 → 상세 페이지 이동
+5. 상세 페이지 "제보하기" 클릭 → 모달 열림
+6. 제보 폼 작성 및 제출 → 성공 토스트
+7. 관리자 로그인 → 제보 목록에서 방금 제출한 제보 확인
+
+apps/web/e2e/ 디렉토리에 작성.
+Docker 환경에서도 실행 가능하도록 설정.
+```
+
+---
+
+## Step 6-2. 성능 최적화
+
+```
+배포 전 성능 최적화를 해줘.
+
+프론트엔드:
+- next/image로 모든 이미지 래핑 (lazy loading, WebP 자동)
+- 카카오맵 마커 100개 이상일 때 클러스터링
+- 필터 변경 시 debounce 300ms
+- React.memo, useMemo 적절히
+- Admin 페이지는 dynamic import로 초기 번들에서 제외
+
+백엔드:
+- GET /restaurants 응답에 불필요한 필드 제거 
+  (Prisma include → select)
+- 자주 조회되는 /categories에 캐싱 (CacheModule)
+- Rate limiting 세밀하게 (제보, 업로드 등)
+
+Docker:
+- 이미지 크기 확인 및 최소화
+- 레이어 캐시 효율 점검
+
+Lighthouse 90점 이상 목표.
+```
+
+---
+
+# 🎯 개발 팁
+
+## 📱 모바일 개발 시 주의사항 (필독!)
+
+### iOS Safari 특이사항
+- `input`, `textarea`, `select` 모두 `font-size: 16px` 이상 (줌 방지)
+- `100vh`는 주소창 고려 안 함 → `100dvh` 사용
+- `position: fixed` + 키보드 이슈 → `visualViewport` API 활용
+- `-webkit-tap-highlight-color: transparent` 설정 (탭 시 회색 박스 제거)
+- 스크롤 바운스: `overscroll-behavior: contain` (바텀 시트 내부)
+
+### Safe Area (노치/홈바)
+- `layout.tsx`의 viewport에 `viewportFit: 'cover'` 필수
+- `env(safe-area-inset-top/bottom/left/right)` 활용
+- Tailwind 커스텀 유틸리티: `pt-safe-top`, `pb-safe-bottom`
+
+### 탭 타겟
+- 모든 버튼/링크 최소 44x44px
+- 인접 탭 요소 간 최소 8px 간격
+- 지도 마커는 hit area를 실제 마커보다 크게
+
+### hover 스타일 주의
+- 모바일에는 hover가 없음 → Tailwind `hover:` 남발 금지
+- `@media (hover: hover)` 조건부 적용 권장
+- 대신 `:active` 상태에 피드백 추가
+
+### 테스트
+- iPhone Safari (실기기)에서 꼭 테스트
+- Chrome DevTools의 Device Mode로 다양한 화면 크기 확인
+- 회전(세로/가로) 대응 확인
+- 키보드 올라왔을 때 레이아웃 확인
+
+---
+
+## 각 스텝 실행 후 반드시 할 것
+1. **코드 리뷰** - Claude가 생성한 코드를 한 줄씩 읽고 이해
+2. **실행 테스트** - `docker compose up`으로 로컬에서 동작 확인
+3. **커밋** - 의미 있는 단위로 커밋 메시지 직접 작성
+4. **PR 생성** - 팀원이 리뷰 가능하도록
+
+## Claude Code에 전달할 때 효과적인 방법
+- 관련 파일을 열어둔 상태에서 요청 (컨텍스트 자동 인식)
+- 에러 발생 시 에러 메시지 전체 + 해당 코드 함께 제공
+- "왜 이렇게 했어?" 질문해서 설계 의도 파악
+- 생성된 코드에 버그 있으면 "이 부분이 이상해, 왜 그럴까?"
+
+## Docker 관련 팁
+- 컨테이너 내부 디버깅: `docker compose exec api sh`
+- 볼륨 초기화 시 주의: `docker compose down -v` (DB 데이터 날아감)
+- 이미지 재빌드: `docker compose build --no-cache api`
+- 의존성 변경 후: `docker compose up --build`
+
+## 제보 기능 구현 시 주의
+- **데이터 무결성**: 승인 시 반드시 트랜잭션 사용
+- **악성 제보 방지**: Rate limiting, 이미지 크기 제한 필수
+- **제보자 개인정보**: 이메일/전화번호 수집은 선택사항 유지
+- **제보 상태 전이**: PENDING → APPROVED/REJECTED/APPLIED만 허용
+
+## 절대 하지 말 것
+- ❌ API 키, DB 비밀번호, JWT_SECRET 등 민감 정보 Claude에 노출
+- ❌ 생성된 코드를 이해 못한 채 머지
+- ❌ 전체 코드베이스를 한 번에 생성 요청 (단계별로)
+- ❌ 테스트 없이 프로덕션 배포
+- ❌ docker-compose.yml에 실제 비밀번호 하드코딩
+
+---
+
+*작성일: 2026-04-19*
+*팡슐랭 팀 (A팀) - Claude Code 개발 프롬프트 가이드*
