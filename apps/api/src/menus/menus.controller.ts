@@ -18,6 +18,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { AdminOnly } from '../auth/decorators/admin-only.decorator';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { MenusService } from './menus.service';
@@ -36,7 +37,8 @@ export class MenusController {
   }
 
   @Post('restaurants/:restaurantId/menus')
-  @ApiOperation({ summary: '메뉴 등록 (Admin 전용 — 추후 Guard 적용)' })
+  @AdminOnly()
+  @ApiOperation({ summary: '메뉴 등록 (Admin 전용)' })
   @ApiCreatedResponse({ description: '생성된 메뉴' })
   @ApiNotFoundResponse({ description: '식당을 찾을 수 없음' })
   create(
@@ -47,7 +49,8 @@ export class MenusController {
   }
 
   @Patch('menus/:id')
-  @ApiOperation({ summary: '메뉴 수정 (Admin 전용 — 추후 Guard 적용)' })
+  @AdminOnly()
+  @ApiOperation({ summary: '메뉴 수정 (Admin 전용)' })
   @ApiOkResponse({ description: '수정된 메뉴' })
   @ApiNotFoundResponse({ description: '메뉴를 찾을 수 없음' })
   update(@Param('id') id: string, @Body() dto: UpdateMenuDto) {
@@ -55,8 +58,9 @@ export class MenusController {
   }
 
   @Delete('menus/:id')
+  @AdminOnly()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: '메뉴 삭제 (Admin 전용 — 추후 Guard 적용)' })
+  @ApiOperation({ summary: '메뉴 삭제 (Admin 전용)' })
   @ApiNoContentResponse({ description: '삭제 성공' })
   @ApiNotFoundResponse({ description: '메뉴를 찾을 수 없음' })
   remove(@Param('id') id: string) {

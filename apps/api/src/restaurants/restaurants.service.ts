@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { isRestaurantOpen } from '../common/utils/business-hours.util';
@@ -131,20 +131,37 @@ export class RestaurantsService {
   async create(dto: CreateRestaurantDto) {
     const { categoryIds, businessHours, partnerInfo, ...data } = dto;
 
-    return this.prisma.restaurant.create({
-      data: {
-        ...data,
-        businessHours: businessHours as Prisma.InputJsonValue,
-        partnerInfo: partnerInfo !== undefined
-          ? (partnerInfo as Prisma.InputJsonValue)
-          : undefined,
-        categories: categoryIds?.length
-          ? {
-              create: categoryIds.map((categoryId) => ({ categoryId })),
-            }
-          : undefined,
-      },
-      select: RESTAURANT_DETAIL_SELECT,
+    if (categoryIds?.length) {
+      await this.assertCategoriesExist(categoryIds);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const restaurant = await tx.restaurant.create({
+        data: {
+          ...data,
+          businessHours: businessHours as Prisma.InputJsonValue,
+          partnerInfo: partnerInfo !== undefined
+            ? (partnerInfo as Prisma.InputJsonValue)
+            : undefined,
+        },
+        select: RESTAURANT_DETAIL_SELECT,
+      });
+
+      if (categoryIds?.length) {
+        await tx.restaurantCategory.createMany({
+          data: categoryIds.map((categoryId) => ({
+            restaurantId: restaurant.id,
+            categoryId,
+          })),
+        });
+
+        return tx.restaurant.findUniqueOrThrow({
+          where: { id: restaurant.id },
+          select: RESTAURANT_DETAIL_SELECT,
+        });
+      }
+
+      return restaurant;
     });
   }
 
@@ -153,9 +170,19 @@ export class RestaurantsService {
 
     const { categoryIds, businessHours, partnerInfo, ...data } = dto;
 
+    if (categoryIds?.length) {
+      await this.assertCategoriesExist(categoryIds);
+    }
+
     return this.prisma.$transaction(async (tx) => {
       if (categoryIds !== undefined) {
         await tx.restaurantCategory.deleteMany({ where: { restaurantId: id } });
+
+        if (categoryIds.length) {
+          await tx.restaurantCategory.createMany({
+            data: categoryIds.map((categoryId) => ({ restaurantId: id, categoryId })),
+          });
+        }
       }
 
       return tx.restaurant.update({
@@ -168,15 +195,25 @@ export class RestaurantsService {
           ...(partnerInfo !== undefined && {
             partnerInfo: partnerInfo as Prisma.InputJsonValue,
           }),
-          categories: categoryIds?.length
-            ? {
-                create: categoryIds.map((categoryId) => ({ categoryId })),
-              }
-            : undefined,
         },
         select: RESTAURANT_DETAIL_SELECT,
       });
     });
+  }
+
+  private async assertCategoriesExist(categoryIds: string[]) {
+    const found = await this.prisma.category.findMany({
+      where: { id: { in: categoryIds } },
+      select: { id: true },
+    });
+
+    if (found.length !== categoryIds.length) {
+      const foundIds = new Set(found.map((c) => c.id));
+      const missing = categoryIds.filter((id) => !foundIds.has(id));
+      throw new BadRequestException(
+        `존재하지 않는 카테고리 ID가 있어요: ${missing.join(', ')}`,
+      );
+    }
   }
 
   async remove(id: string) {

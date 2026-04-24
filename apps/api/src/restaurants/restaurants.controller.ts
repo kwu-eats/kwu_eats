@@ -19,6 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { AdminOnly } from '../auth/decorators/admin-only.decorator';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { QueryRestaurantDto } from './dto/query-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
@@ -45,14 +46,16 @@ export class RestaurantsController {
   }
 
   @Post()
-  @ApiOperation({ summary: '식당 등록 (Admin 전용 — 추후 Guard 적용)' })
+  @AdminOnly()
+  @ApiOperation({ summary: '식당 등록 (Admin 전용)' })
   @ApiCreatedResponse({ description: '생성된 식당' })
   create(@Body() dto: CreateRestaurantDto) {
     return this.restaurantsService.create(dto);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: '식당 수정 (Admin 전용 — 추후 Guard 적용)' })
+  @AdminOnly()
+  @ApiOperation({ summary: '식당 수정 (Admin 전용)' })
   @ApiOkResponse({ description: '수정된 식당' })
   @ApiNotFoundResponse({ description: '식당을 찾을 수 없음' })
   update(@Param('id') id: string, @Body() dto: UpdateRestaurantDto) {
@@ -60,8 +63,9 @@ export class RestaurantsController {
   }
 
   @Delete(':id')
+  @AdminOnly()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: '식당 삭제 (Admin 전용 — 추후 Guard 적용)' })
+  @ApiOperation({ summary: '식당 삭제 (Admin 전용)' })
   @ApiNoContentResponse({ description: '삭제 성공' })
   @ApiNotFoundResponse({ description: '식당을 찾을 수 없음' })
   remove(@Param('id') id: string) {
