@@ -24,13 +24,51 @@ export interface Report {
   updatedAt: string;
 }
 
-export interface CreateReportDto {
+export interface RestaurantInfoSuggestedData {
+  phone?: string;
+  address?: string;
+  businessHours?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface MenuChangeSuggestedData {
+  menuName: string;
+  action: 'UPDATE' | 'ADD' | 'DELETE';
+  oldPrice?: number;
+  newPrice?: number;
+}
+
+export interface NewRestaurantSuggestedData {
+  name: string;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  menus?: Array<{ name: string; price: number }>;
+}
+
+export interface ClosedSuggestedData {
+  reason?: string;
+}
+
+export type SuggestedData =
+  | RestaurantInfoSuggestedData
+  | MenuChangeSuggestedData
+  | NewRestaurantSuggestedData
+  | ClosedSuggestedData;
+
+export interface CreateReportRequest {
   type: ReportType;
   restaurantId?: string;
   menuId?: string;
   reporterName?: string;
   reporterContact?: string;
   content: string;
-  suggestedData: Record<string, unknown>;
+  suggestedData: SuggestedData;
   imageUrls?: string[];
+}
+
+export interface CreateReportResponse {
+  id: string;
+  status: ReportStatus;
+  createdAt: string;
 }

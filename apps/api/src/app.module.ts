@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AdminModule } from './admin/admin.module';
 import { AppController } from './app.controller';
@@ -21,6 +23,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
         abortEarly: false,
       },
     }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     PrismaModule,
     RestaurantsModule,
     MenusModule,
@@ -30,5 +33,6 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
     AuthModule,
   ],
   controllers: [AppController],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
