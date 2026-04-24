@@ -44,7 +44,7 @@ services:
       - .:/workspace
       - api_node_modules:/workspace/node_modules
       - api_app_node_modules:/workspace/apps/api/node_modules
-    command: sh -c "pnpm install --frozen-lockfile --config.confirmModulesPurge=false && pnpm dev"
+    command: sh -c "pnpm install --frozen-lockfile --config.confirmModulesPurge=false && pnpm prisma generate && pnpm build && pnpm dev"
     networks:
       - pangchelin-network
 

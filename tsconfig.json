@@ -11,13 +11,11 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "incremental": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
     }
   },
-  "include": ["**/*.ts", "**/*.js"],
-  "exclude": ["node_modules", "dist", ".next"]
+  "include": ["apps/web/**/*.ts", "apps/web/**/*.tsx", "packages/types/**/*.ts"],
+  "exclude": ["node_modules", "dist", ".next", "apps/api"]
 }

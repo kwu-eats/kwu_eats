@@ -18,4 +18,4 @@ WORKDIR /workspace/apps/api
 
 EXPOSE 4000
 
-CMD ["pnpm", "dev"]
+CMD ["sh", "-c", "pnpm prisma generate && pnpm dev"]
