@@ -28,8 +28,8 @@
 
 매 작업 시작 전 다음을 확인하세요:
 
-1. [ ] `docs/harness/checklist.md` 읽고 관련 항목 점검했는가?
-2. [ ] `docs/harness/KNOWN_ISSUES.md`에서 유사한 이슈가 있었는지 확인했는가?
+1. [ ] `docs/checklist.md` 읽고 관련 항목 점검했는가?
+2. [ ] `docs/KNOWN_ISSUES.md`에서 유사한 이슈가 있었는지 확인했는가?
 3. [ ] `docs/디자인_시스템.md`의 모바일 규칙을 따르고 있는가?
 4. [ ] DB 스키마 변경 시 `apps/api/prisma/schema.prisma` 먼저 확인했는가?
 
@@ -124,12 +124,12 @@ pangchelin/
 │   └── api/                # NestJS
 ├── packages/
 │   └── types/              # 공통 타입
-├── docker/                 # Docker 설정
 ├── docs/
-│   ├── harness/            # 하네스 파일들
+│   ├── checklist.md
+│   ├── KNOWN_ISSUES.md
 │   ├── 개발_계획.md
 │   ├── 디자인_시스템.md
-│   └── claude_code_개발_프롬프트.md
+│   └── 개발_프롬프트.md
 ├── .claude/
 │   └── CLAUDE.md           # 이 파일
 ├── docker-compose.yml
@@ -171,10 +171,10 @@ docker compose exec postgres psql -U user pangchelin
 작업 시 참고할 문서 (우선순위 순):
 
 1. **이 파일 (CLAUDE.md)** — 가장 중요한 규칙
-2. **docs/harness/KNOWN_ISSUES.md** — 과거 발생한 이슈와 해결법
-3. **docs/harness/checklist.md** — 작업 단계별 체크리스트
+2. **docs/KNOWN_ISSUES.md** — 과거 발생한 이슈와 해결법
+3. **docs/checklist.md** — 작업 단계별 체크리스트
 4. **docs/디자인_시스템.md** — UI/UX 가이드
-5. **docs/claude_code_개발_프롬프트.md** — Step별 프롬프트
+5. **docs/개발_프롬프트.md** — Step별 프롬프트
 6. **docs/개발_계획.md** — 전체 계획
 
 ---
@@ -186,6 +186,7 @@ docker compose exec postgres psql -U user pangchelin
 | 날짜 | 변경 내용 | 작성자 |
 |------|----------|--------|
 | 2026-04-19 | 초기 생성 | 팡슐랭 팀 |
+| 2026-04-24 | 경로 수정 (claude/ → .claude/), docs/harness/ → docs/ | 팡슐랭 팀 |
 
 ---
 
