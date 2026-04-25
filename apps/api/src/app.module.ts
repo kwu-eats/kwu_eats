@@ -12,6 +12,7 @@ import { MenusModule } from './menus/menus.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ReportsModule } from './reports/reports.module';
 import { RestaurantsModule } from './restaurants/restaurants.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
     ReportsModule,
     AdminModule,
     AuthModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
