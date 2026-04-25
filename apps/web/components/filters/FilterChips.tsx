@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useCategories } from '@/hooks/queries/useCategories';
 import { useFilterStore } from '@/lib/stores/filterStore';
@@ -64,8 +65,8 @@ export function FilterChips() {
       </div>
       </div>
 
-      {/* 예산 모달 */}
-      {budgetModalOpen && (
+      {/* 예산 모달 — stacking context 문제 방지를 위해 body에 portal로 렌더링 */}
+      {budgetModalOpen && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-ink-primary/30"
           onClick={() => setBudgetModalOpen(false)}
@@ -103,7 +104,8 @@ export function FilterChips() {
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

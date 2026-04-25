@@ -1,0 +1,64 @@
+import type { RestaurantWithRelations } from '@pangchelin/types';
+import { MapPin, Phone } from 'lucide-react';
+
+const ZONE_LABEL: Record<string, string> = {
+  KWANGWOON_STATION: '광운대역',
+  FRONT_GATE: '정문',
+  BACK_GATE: '후문',
+};
+
+interface Props {
+  restaurant: RestaurantWithRelations;
+}
+
+export function RestaurantInfo({ restaurant }: Props) {
+  return (
+    <div className="space-y-3">
+      {/* 이름 + 배지 */}
+      <div className="flex flex-wrap items-center gap-2">
+        <h1 className="text-2xl font-display text-ink-primary leading-tight">
+          {restaurant.name}
+        </h1>
+        {restaurant.isPartner && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium bg-accent-100 text-accent-600">
+            제휴
+          </span>
+        )}
+        <span
+          className={[
+            'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium',
+            restaurant.isOpen
+              ? 'bg-[var(--color-success-bg)] text-[var(--color-success-dark)]'
+              : 'bg-muted text-ink-muted',
+          ].join(' ')}
+        >
+          {restaurant.isOpen ? '영업중' : '오늘은 끝났어요'}
+        </span>
+      </div>
+
+      {/* 카테고리 · 구역 */}
+      <p className="text-sm font-body text-ink-muted">
+        {restaurant.categories.map((c) => c.name).join(' · ')}
+        {restaurant.categories.length > 0 && ' · '}
+        {ZONE_LABEL[restaurant.zone]}
+      </p>
+
+      {/* 주소 */}
+      <div className="flex items-start gap-2 text-sm font-body text-ink-body">
+        <MapPin size={16} strokeWidth={1.75} className="mt-0.5 flex-shrink-0 text-ink-muted" />
+        <span>{restaurant.address}</span>
+      </div>
+
+      {/* 전화번호 */}
+      {restaurant.phone && (
+        <a
+          href={`tel:${restaurant.phone}`}
+          className="flex items-center gap-2 text-sm font-body text-primary-500 min-h-touch"
+        >
+          <Phone size={16} strokeWidth={1.75} className="flex-shrink-0" />
+          <span>{restaurant.phone}</span>
+        </a>
+      )}
+    </div>
+  );
+}

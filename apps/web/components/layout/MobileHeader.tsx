@@ -37,11 +37,11 @@ export function MobileHeader() {
       {menuOpen && (
         <>
           <div
-            className="fixed inset-0 z-30"
+            className="fixed inset-0 z-[45]"
             onClick={() => setMenuOpen(false)}
             aria-hidden="true"
           />
-          <nav className="absolute right-4 top-14 z-40 min-w-[160px] rounded-lg bg-surface shadow-lg border border-border py-1">
+          <nav className="fixed right-4 top-14 z-[46] min-w-[160px] rounded-lg bg-surface shadow-lg border border-border py-1">
             <Link
               href="/report"
               className="flex items-center px-4 py-3 text-sm font-body text-ink-body min-h-touch"
