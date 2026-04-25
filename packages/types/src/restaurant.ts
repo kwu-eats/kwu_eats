@@ -31,12 +31,37 @@ export interface Restaurant {
   updatedAt: string;
 }
 
+export interface RestaurantListItem extends Restaurant {
+  isOpen: boolean;
+  categories: import('./category').Category[];
+  featuredMenu?: import('./menu').Menu | null;
+}
+
 export interface RestaurantWithRelations extends Restaurant {
+  isOpen: boolean;
   categories: import('./category').Category[];
   menus: import('./menu').Menu[];
 }
 
-export interface RestaurantListItem extends Restaurant {
-  categories: import('./category').Category[];
-  representativeMenu?: import('./menu').Menu | null;
+export interface CreateRestaurantRequest {
+  name: string;
+  zone: Zone;
+  latitude: number;
+  longitude: number;
+  address: string;
+  phone?: string;
+  businessHours: BusinessHoursMap;
+  isPartner?: boolean;
+  partnerInfo?: Record<string, unknown>;
+  categoryIds?: string[];
+}
+
+export type UpdateRestaurantRequest = Partial<CreateRestaurantRequest>;
+
+export interface RestaurantQueryParams {
+  zone?: Zone;
+  categoryId?: string;
+  maxPrice?: number;
+  isPartner?: boolean;
+  isOpen?: boolean;
 }

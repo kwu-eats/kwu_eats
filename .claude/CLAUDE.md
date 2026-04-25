@@ -16,6 +16,7 @@
 - Database: PostgreSQL
 - Map: 카카오맵 JavaScript SDK
 - State: Zustand + TanStack Query
+- Image Storage: AWS S3
 - Container: Docker + Docker Compose
 - Monorepo: pnpm workspace
 
