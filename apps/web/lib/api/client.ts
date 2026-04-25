@@ -1,4 +1,11 @@
-import { clientEnv } from '../../env';
+import { clientEnv, serverEnv } from '../../env';
+
+function getBaseUrl(): string {
+  if (typeof window === 'undefined') {
+    return serverEnv.INTERNAL_API_URL ?? clientEnv.NEXT_PUBLIC_API_URL;
+  }
+  return clientEnv.NEXT_PUBLIC_API_URL;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -27,7 +34,7 @@ export async function apiFetch<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${clientEnv.NEXT_PUBLIC_API_URL}${path}`, {
+  const res = await fetch(`${getBaseUrl()}${path}`, {
     ...options,
     headers,
   });
