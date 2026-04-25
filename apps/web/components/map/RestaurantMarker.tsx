@@ -2,6 +2,32 @@
 
 import { useEffect, useRef } from 'react';
 
+// 탭(짧은 터치)과 스와이프(지도 드래그)를 구분해서 이벤트 등록
+function attachTapHandler(el: HTMLElement, onTap: () => void) {
+  let startX = 0;
+  let startY = 0;
+
+  el.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  el.addEventListener('touchend', (e) => {
+    const dx = Math.abs(e.changedTouches[0].clientX - startX);
+    const dy = Math.abs(e.changedTouches[0].clientY - startY);
+    if (dx < 10 && dy < 10) {
+      e.stopPropagation();
+      onTap();
+    }
+  });
+
+  // 데스크톱 fallback
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onTap();
+  });
+}
+
 interface RestaurantMarkerProps {
   map: kakao.maps.Map;
   lat: number;
@@ -92,12 +118,10 @@ export function RestaurantMarker({
     const position = new window.kakao.maps.LatLng(lat, lng);
     const content = buildContent(isOpen, isPartner, isSelected);
 
-    content.addEventListener('click', () => {
+    attachTapHandler(content, () => {
       onClickRef.current?.();
       content.style.transform = 'translateY(-6px)';
-      setTimeout(() => {
-        content.style.transform = '';
-      }, 200);
+      setTimeout(() => { content.style.transform = ''; }, 200);
     });
 
     const overlay = new window.kakao.maps.CustomOverlay({
@@ -123,12 +147,10 @@ export function RestaurantMarker({
     if (!overlayRef.current) return;
 
     const content = buildContent(isOpen, isPartner, isSelected);
-    content.addEventListener('click', () => {
+    attachTapHandler(content, () => {
       onClickRef.current?.();
       content.style.transform = 'translateY(-6px)';
-      setTimeout(() => {
-        content.style.transform = '';
-      }, 200);
+      setTimeout(() => { content.style.transform = ''; }, 200);
     });
 
     overlayRef.current.setContent(content);

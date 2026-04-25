@@ -32,9 +32,13 @@ export const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(
         const center = new window.kakao.maps.LatLng(KWU_CENTER.lat, KWU_CENTER.lng);
         const map = new window.kakao.maps.Map(containerRef.current, {
           center,
-          level: 4,
+          level: 5,
         });
         mapRef.current = map;
+        // 컨테이너 크기가 확정된 뒤 relayout으로 중심 재설정
+        setTimeout(() => {
+          map.setCenter(center);
+        }, 100);
         onMapReady?.(map);
       });
     }, [scriptLoaded, onMapReady]);
