@@ -1,6 +1,6 @@
 'use client';
 
-import { ClipboardList, LogOut, Store, Tag } from 'lucide-react';
+import { ClipboardList, LogOut, Map, Store, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -66,17 +66,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
-        <div className="p-4 border-t border-border space-y-1">
-          <p className="text-xs font-body text-ink-muted truncate">{admin?.name}</p>
-          <p className="text-xs font-body text-ink-subtle truncate">{admin?.email}</p>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="mt-2 flex items-center gap-2 text-xs font-body text-ink-muted hover:text-ink-primary transition-colors"
+        <div className="p-4 border-t border-border space-y-3">
+          <Link
+            href="/"
+            target="_blank"
+            className="flex items-center gap-2 w-full h-9 rounded-lg border border-border px-3 text-xs font-body text-ink-body hover:bg-muted transition-colors"
           >
-            <LogOut size={14} strokeWidth={1.75} />
-            로그아웃
-          </button>
+            <Map size={14} strokeWidth={1.75} />
+            지도로 이동
+          </Link>
+
+          <div className="space-y-1">
+            <p className="text-xs font-body text-ink-muted truncate">{admin?.name}</p>
+            <p className="text-xs font-body text-ink-subtle truncate">{admin?.email}</p>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="mt-1 flex items-center gap-2 text-xs font-body text-ink-muted hover:text-ink-primary transition-colors"
+            >
+              <LogOut size={14} strokeWidth={1.75} />
+              로그아웃
+            </button>
+          </div>
         </div>
       </aside>
 
