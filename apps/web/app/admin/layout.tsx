@@ -1,6 +1,6 @@
 'use client';
 
-import { ClipboardList, LogOut, Store } from 'lucide-react';
+import { ClipboardList, LogOut, Store, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -10,6 +10,7 @@ import { useAuthStore } from '@/lib/stores/authStore';
 const NAV_ITEMS = [
   { href: '/admin/reports', label: '제보 관리', icon: ClipboardList },
   { href: '/admin/restaurants', label: '식당 관리', icon: Store },
+  { href: '/admin/categories', label: '카테고리 관리', icon: Tag },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
