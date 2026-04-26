@@ -64,6 +64,7 @@ services:
       PORT: ${WEB_PORT:-3000}
       CHOKIDAR_USEPOLLING: 'true'
       WATCHPACK_POLLING: 'true'
+      INTERNAL_API_URL: http://api:${API_PORT:-4000}
     ports:
       - '${WEB_PORT:-3000}:3000'
     volumes:
