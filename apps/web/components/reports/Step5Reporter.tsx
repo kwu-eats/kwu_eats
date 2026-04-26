@@ -22,7 +22,7 @@ export function Step5Reporter({ state, setState }: Props) {
       </div>
 
       <div>
-        <label className={labelBase}>제보 내용 *</label>
+        <label className={labelBase}>제보 내용 * (5자 이상)</label>
         <textarea
           value={state.content}
           onChange={(e) => setState({ ...state, content: e.target.value })}

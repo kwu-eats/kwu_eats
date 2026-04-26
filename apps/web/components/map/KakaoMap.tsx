@@ -22,7 +22,9 @@ export const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(
   ({ className = 'w-full h-full', onMapReady }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<kakao.maps.Map | null>(null);
-    const [scriptLoaded, setScriptLoaded] = useState(false);
+    const [scriptLoaded, setScriptLoaded] = useState(
+      typeof window !== 'undefined' && !!window.kakao?.maps,
+    );
 
     useEffect(() => {
       if (!scriptLoaded || !containerRef.current || mapRef.current) return;
