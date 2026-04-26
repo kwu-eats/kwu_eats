@@ -95,6 +95,33 @@ declare namespace kakao {
         handler: (...args: unknown[]) => void,
       ): void;
     }
+
+    namespace services {
+      interface PlaceSearchResult {
+        id: string;
+        place_name: string;
+        category_name: string;
+        address_name: string;
+        road_address_name: string;
+        phone: string;
+        place_url: string;
+        x: string;
+        y: string;
+      }
+
+      type PlacesSearchStatus = 'OK' | 'ZERO_RESULT' | 'ERROR';
+
+      class Places {
+        keywordSearch(
+          keyword: string,
+          callback: (
+            result: PlaceSearchResult[],
+            status: PlacesSearchStatus,
+          ) => void,
+          options?: { size?: number },
+        ): void;
+      }
+    }
   }
 }
 

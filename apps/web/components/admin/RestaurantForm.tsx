@@ -5,7 +5,7 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Script from 'next/script';
-import { Plus, Trash2, ImagePlus, Star } from 'lucide-react';
+import { Plus, Trash2, ImagePlus, Star, Search } from 'lucide-react';
 
 import { useCategories } from '@/hooks/queries/useCategories';
 import { adminUploadImage } from '@/lib/api/upload';
@@ -150,6 +150,37 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
   const lat = watch('latitude');
   const lng = watch('longitude');
 
+  // 카카오 장소 검색
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<kakao.maps.services.PlaceSearchResult[]>([]);
+  const [showResults, setShowResults] = useState(false);
+
+  function handlePlaceSearch() {
+    if (!searchQuery.trim() || !mapLoaded) return;
+    window.kakao.maps.load(() => {
+      const ps = new window.kakao.maps.services.Places();
+      ps.keywordSearch(searchQuery, (results, status) => {
+        if (status === 'OK') {
+          setSearchResults(results);
+          setShowResults(true);
+        } else {
+          setSearchResults([]);
+          setShowResults(true);
+        }
+      }, { size: 8 });
+    });
+  }
+
+  function handleSelectPlace(place: kakao.maps.services.PlaceSearchResult) {
+    setValue('name', place.place_name, { shouldValidate: true });
+    setValue('address', place.road_address_name || place.address_name, { shouldValidate: true });
+    setValue('phone', place.phone, { shouldValidate: true });
+    setValue('latitude', parseFloat(place.y), { shouldValidate: true });
+    setValue('longitude', parseFloat(place.x), { shouldValidate: true });
+    setShowResults(false);
+    setSearchQuery('');
+  }
+
   // KakaoMap picker
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<kakao.maps.Map | null>(null);
@@ -195,6 +226,62 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* 카카오 장소 검색 */}
+      <div className={sectionClass}>
+        <h2 className="text-sm font-semibold text-ink-primary">카카오맵 검색으로 자동 입력</h2>
+        <p className="text-xs text-ink-muted">식당명으로 검색하면 주소, 전화번호, 위치가 자동으로 채워져요</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handlePlaceSearch())}
+            placeholder="예) 푸른스시, 광운분식집"
+            className={inputClass}
+          />
+          <button
+            type="button"
+            onClick={handlePlaceSearch}
+            className="flex shrink-0 items-center gap-1.5 h-10 rounded-xl bg-primary-500 px-4 text-sm font-medium text-white hover:bg-primary-600 transition-colors"
+          >
+            <Search size={15} />
+            검색
+          </button>
+        </div>
+        {showResults && (
+          <div className="rounded-xl border border-border bg-surface overflow-hidden">
+            {searchResults.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-ink-muted">검색 결과가 없어요</p>
+            ) : (
+              <ul>
+                {searchResults.map((place) => (
+                  <li key={place.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPlace(place)}
+                      className="w-full px-4 py-3 text-left hover:bg-muted transition-colors border-b border-border last:border-0"
+                    >
+                      <p className="text-sm font-medium text-ink-primary">{place.place_name}</p>
+                      <p className="text-xs text-ink-muted mt-0.5">
+                        {place.road_address_name || place.address_name}
+                        {place.phone && <span className="ml-2">{place.phone}</span>}
+                      </p>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowResults(false)}
+              className="w-full px-4 py-2 text-xs text-ink-muted hover:bg-muted transition-colors border-t border-border"
+            >
+              닫기
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* 기본 정보 */}
       <div className={sectionClass}>
         <h2 className="text-sm font-semibold text-ink-primary">기본 정보</h2>
@@ -227,7 +314,7 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
         <h2 className="text-sm font-semibold text-ink-primary">위치 선택</h2>
         <p className="text-xs text-ink-muted">지도를 클릭해서 위치를 지정하세요</p>
         <Script
-          src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${clientEnv.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false`}
+          src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${clientEnv.NEXT_PUBLIC_KAKAO_MAP_KEY}&libraries=services&autoload=false`}
           strategy="afterInteractive"
           onLoad={() => setMapLoaded(true)}
         />
