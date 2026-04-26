@@ -35,6 +35,7 @@ export async function apiFetch<T>(
   }
 
   const res = await fetch(`${getBaseUrl()}${path}`, {
+    cache: typeof window === 'undefined' ? 'no-store' : undefined,
     ...options,
     headers,
   });
