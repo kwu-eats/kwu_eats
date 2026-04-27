@@ -1,0 +1,53 @@
+# Playwright E2E 테스트 러너
+#
+# 사용:
+#   1) 메인 스택 기동:
+#      docker compose up -d
+#      docker compose exec api pnpm prisma migrate deploy
+#      docker compose exec api pnpm prisma:seed
+#
+#   2) 테스트 실행:
+#      docker compose -f docker-compose.yml -f docker-compose.e2e.yml \
+#        run --rm playwright
+#
+#   3) HTML 리포트 확인:
+#      apps/web/playwright-report/index.html  (호스트 경로에 마운트됨)
+#
+# web/api 컨테이너의 node_modules 는 anonymous volume 으로 격리되어 있어
+# 새 컨테이너에서 pnpm install 을 다시 수행합니다 (e2e 전용 볼륨에 캐싱).
+
+services:
+  playwright:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.e2e
+    container_name: pangchelin-playwright
+    depends_on:
+      - web
+      - api
+    networks:
+      - pangchelin-network
+    working_dir: /workspace/apps/web
+    environment:
+      CI: 'true'
+      E2E_BASE_URL: http://web:3000
+      E2E_API_URL: http://api:4000
+    volumes:
+      - .:/workspace
+      - e2e_node_modules:/workspace/node_modules
+      - e2e_app_node_modules:/workspace/apps/web/node_modules
+    command: >
+      sh -c "
+      echo '── Installing deps...' &&
+      pnpm install --frozen-lockfile --config.confirmModulesPurge=false &&
+      echo '── Waiting for web (http://web:3000)...' &&
+      until curl -sf http://web:3000 > /dev/null; do sleep 2; done &&
+      echo '── Waiting for api (http://api:4000/health)...' &&
+      until curl -sf http://api:4000/health > /dev/null; do sleep 2; done &&
+      echo '── Running Playwright tests...' &&
+      pnpm e2e
+      "
+
+volumes:
+  e2e_node_modules:
+  e2e_app_node_modules:

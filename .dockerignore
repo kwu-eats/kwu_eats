@@ -19,3 +19,8 @@ postgres_data
 redis_data
 tmp
 temp
+
+# Playwright E2E artifacts
+apps/web/playwright-report
+apps/web/test-results
+apps/web/playwright/.cache
