@@ -50,11 +50,16 @@ test.describe('관리자 제보 검토 플로우', () => {
     ).toBeVisible();
 
     // ── 4) 통계 카드 노출 ("대기중", "이번 주 접수", "전체 승인률")
-    await expect(page.getByText('대기중', { exact: true })).toBeVisible();
-    await expect(page.getByText('이번 주 접수', { exact: true })).toBeVisible();
+    // "대기중"은 통계 카드 라벨/select 옵션/테이블 배지에 모두 등장하므로
+    // 통계 카드 grid 로 범위를 좁혀서 strict mode 위반 회피
+    const statsGrid = page.locator('div.grid.grid-cols-3').first();
+    await expect(statsGrid.getByText('대기중', { exact: true })).toBeVisible();
+    await expect(statsGrid.getByText('이번 주 접수', { exact: true })).toBeVisible();
 
     // ── 5) 테이블에 신규 제보 노출 (content 가 미리보기로 표시됨)
-    const reportRow = page.getByRole('row', { name: new RegExp(reportContent) });
+    // reportContent 가 "[ADMIN_FLOW ...]" 로 시작 → regex 의 character class 와
+    // 충돌하므로 hasText(문자열, substring 매치) 로 행을 찾는다.
+    const reportRow = page.getByRole('row').filter({ hasText: reportContent });
     await expect(reportRow).toBeVisible({ timeout: 15_000 });
 
     // 식당명 컬럼에 시드 식당 이름 노출

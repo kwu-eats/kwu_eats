@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import type { ReportStatus, ReportType } from '@pangchelin/types';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { useAdminReports, useAdminReportStats } from '@/hooks/queries/useReports';
-import type { ReportStatus, ReportType } from '@pangchelin/types';
 
 const TYPE_LABEL: Record<ReportType, string> = {
   RESTAURANT_INFO: '정보 수정',

@@ -81,18 +81,26 @@ declare namespace kakao {
       averageCenter?: boolean;
       minLevel?: number;
       gridSize?: number;
+      minClusterSize?: number;
+      disableClickZoom?: boolean;
     }
 
     namespace event {
-      function addListener(
+      interface MouseEvent {
+        latLng: LatLng;
+        point: Point;
+      }
+      // 이벤트 인자가 종류별로 달라(map click 은 MouseEvent, marker click 은 인자 없음)
+      // 호출측에서 명시한 핸들러 시그니처를 그대로 받기 위해 generic 으로 둔다.
+      function addListener<H extends (...args: never[]) => void>(
         target: Map | Marker | CustomOverlay,
         type: string,
-        handler: (...args: unknown[]) => void,
+        handler: H,
       ): void;
-      function removeListener(
+      function removeListener<H extends (...args: never[]) => void>(
         target: Map | Marker | CustomOverlay,
         type: string,
-        handler: (...args: unknown[]) => void,
+        handler: H,
       ): void;
     }
 

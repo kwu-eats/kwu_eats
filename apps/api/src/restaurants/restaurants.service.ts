@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 
 import { isRestaurantOpen } from '../common/utils/business-hours.util';
 import { PrismaService } from '../prisma/prisma.service';
+
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { QueryRestaurantDto } from './dto/query-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';

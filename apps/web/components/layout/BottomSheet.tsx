@@ -1,6 +1,5 @@
 'use client';
 
-import { type SheetSnap, useSheetStore } from '@/lib/stores/sheetStore';
 import {
   animate,
   motion,
@@ -8,6 +7,8 @@ import {
   useTransform,
 } from 'framer-motion';
 import { type ReactNode, useEffect, useRef } from 'react';
+
+import { type SheetSnap, useSheetStore } from '@/lib/stores/sheetStore';
 
 // 각 snap 단계의 화면 상단에서부터의 y 오프셋 (px 기준, 100dvh 에서 계산)
 const SNAP_OFFSETS: Record<SheetSnap, number> = {

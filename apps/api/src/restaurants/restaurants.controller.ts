@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 
 import { AdminOnly } from '../auth/decorators/admin-only.decorator';
+
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { QueryRestaurantDto } from './dto/query-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';

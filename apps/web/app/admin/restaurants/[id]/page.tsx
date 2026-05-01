@@ -1,14 +1,30 @@
 'use client';
 
+import type { RestaurantWithRelations } from '@pangchelin/types';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 
-import { useRestaurant } from '@/hooks/queries/useRestaurants';
-import { useUpdateRestaurant } from '@/hooks/mutations/useRestaurantMutations';
-import { createMenu, updateMenu, deleteMenu } from '@/lib/api/menus';
-import { useAuthStore } from '@/lib/stores/authStore';
-import { RestaurantForm, toFormValues } from '@/components/admin/RestaurantForm';
 import type { RestaurantFormValues } from '@/components/admin/RestaurantForm';
-import type { RestaurantWithRelations } from '@pangchelin/types';
+import { toFormValues } from '@/components/admin/RestaurantForm.helpers';
+import { useUpdateRestaurant } from '@/hooks/mutations/useRestaurantMutations';
+import { useRestaurant } from '@/hooks/queries/useRestaurants';
+import { createMenu, deleteMenu, updateMenu } from '@/lib/api/menus';
+import { useAuthStore } from '@/lib/stores/authStore';
+
+// 폼은 무거우므로 dynamic import (자세한 설명은 new/page.tsx 참고)
+const RestaurantForm = dynamic(
+  () => import('@/components/admin/RestaurantForm').then((m) => m.RestaurantForm),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-12 animate-pulse rounded-lg bg-muted" />
+        ))}
+      </div>
+    ),
+  },
+);
 
 export default function EditRestaurantPage() {
   const params = useParams();
@@ -41,7 +57,8 @@ export default function EditRestaurantPage() {
     // 메뉴 동기화
     const existing = restaurant!.menus ?? [];
     const existingIds = new Set(existing.map((m) => m.id));
-    const formIds = new Set(values.menus.filter((m) => m.id).map((m) => m.id!));
+    const submittedMenus = values.menus ?? [];
+    const formIds = new Set(submittedMenus.filter((m) => m.id).map((m) => m.id!));
 
     // 삭제된 메뉴
     for (const m of existing) {
@@ -51,7 +68,7 @@ export default function EditRestaurantPage() {
     }
 
     // 추가/수정
-    for (const m of values.menus) {
+    for (const m of submittedMenus) {
       if (m.id && existingIds.has(m.id)) {
         await updateMenu(m.id, {
           name: m.name,

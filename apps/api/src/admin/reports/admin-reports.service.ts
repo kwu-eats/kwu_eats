@@ -6,6 +6,7 @@ import {
 import { Prisma, ReportStatus, ReportType, Zone } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+
 import { ApproveReportDto } from './dto/approve-report.dto';
 import { QueryAdminReportsDto } from './dto/query-admin-reports.dto';
 import { RejectReportDto } from './dto/reject-report.dto';
@@ -89,7 +90,7 @@ export class AdminReportsService {
     }
 
     const dataToApply = (dto.editedData ??
-      (report.suggestedData as Prisma.JsonObject)) as Record<string, unknown>;
+      (report.suggestedData as Prisma.JsonObject));
 
     return this.prisma.$transaction(async (tx) => {
       if (dto.applyNow) {
@@ -263,7 +264,7 @@ export class AdminReportsService {
     const updateData: Prisma.RestaurantUpdateInput = {};
     if (typeof data.name === 'string') updateData.name = data.name;
     if (typeof data.phone === 'string' || data.phone === null) {
-      updateData.phone = data.phone as string | null;
+      updateData.phone = data.phone;
     }
     if (typeof data.address === 'string') updateData.address = data.address;
     if (data.businessHours && typeof data.businessHours === 'object') {

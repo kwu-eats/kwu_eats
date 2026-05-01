@@ -4,7 +4,6 @@ import Script from 'next/script';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 import { clientEnv } from '@/env';
-
 import { KWU_CENTER } from '@/hooks/useKakaoMap';
 
 export interface KakaoMapHandle {

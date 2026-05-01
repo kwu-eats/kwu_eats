@@ -3,22 +3,31 @@
 import type { CreateReportRequest, ReportType, SuggestedData } from '@pangchelin/types';
 import { ChevronLeft } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ReportStepper } from '@/components/reports/ReportStepper';
 import { ReportSuccess } from '@/components/reports/ReportSuccess';
+import { initialFormState, type ReportFormState } from '@/components/reports/reportTypes';
 import { Step1TypeSelect } from '@/components/reports/Step1TypeSelect';
 import { Step2RestaurantSelect } from '@/components/reports/Step2RestaurantSelect';
 import { Step3SuggestedData } from '@/components/reports/Step3SuggestedData';
 import { Step4ImageUpload } from '@/components/reports/Step4ImageUpload';
 import { Step5Reporter } from '@/components/reports/Step5Reporter';
-import { initialFormState, type ReportFormState } from '@/components/reports/reportTypes';
 import { useSubmitReport } from '@/hooks/mutations/useSubmitReport';
 
 const TOTAL_STEPS = 5;
 
+// useSearchParams 가 prerender 차단을 일으키므로 Suspense 로 감싼다 (Next.js 14 요구사항)
 export default function ReportPage() {
+  return (
+    <Suspense fallback={<div className="min-h-dvh bg-canvas" />}>
+      <ReportPageInner />
+    </Suspense>
+  );
+}
+
+function ReportPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const submitMutation = useSubmitReport();

@@ -1,17 +1,21 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus, Trash2, ImagePlus, Star, Search } from 'lucide-react';
+import Script from 'next/script';
 import { useEffect, useRef, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import Script from 'next/script';
-import { Plus, Trash2, ImagePlus, Star, Search } from 'lucide-react';
 
+import { clientEnv } from '@/env';
 import { useCategories } from '@/hooks/queries/useCategories';
 import { adminUploadImage } from '@/lib/api/upload';
 import { useAuthStore } from '@/lib/stores/authStore';
-import { clientEnv } from '@/env';
-import type { RestaurantWithRelations } from '@pangchelin/types';
+
+// helpers 는 별도 파일로 분리되어 있어 페이지에서 정적 import 해도
+// 폼 본체(react-hook-form/zod/lucide/Script) 무게를 끌어오지 않는다.
+// 컴포넌트만 dynamic import 하면 됨.
+export { defaultFormValues, toFormValues } from './RestaurantForm.helpers';
 
 const DAYS = [
   { key: 'mon', label: '월' },
@@ -43,7 +47,7 @@ const menuRowSchema = z.object({
   isSignature: z.boolean().default(false),
 });
 
-export const restaurantSchema = z.object({
+const restaurantSchema = z.object({
   name: z.string().min(1, '식당명을 입력해주세요'),
   zone: z.enum(['KWANGWOON_STATION', 'FRONT_GATE', 'BACK_GATE']),
   address: z.string().min(1, '주소를 입력해주세요'),
@@ -60,66 +64,9 @@ export const restaurantSchema = z.object({
   menus: z.array(menuRowSchema).default([]),
 });
 
-export type RestaurantFormValues = z.infer<typeof restaurantSchema>;
-
-function defaultDayHours() {
-  return { closed: false, open: '11:00', close: '21:00' };
-}
-
-export function toFormValues(r: RestaurantWithRelations): RestaurantFormValues {
-  const bh = (r.businessHours ?? {}) as Record<string, { open?: string; close?: string; closed?: boolean }>;
-  return {
-    name: r.name,
-    zone: r.zone as RestaurantFormValues['zone'],
-    address: r.address,
-    phone: r.phone ?? '',
-    latitude: r.latitude,
-    longitude: r.longitude,
-    businessHours: {
-      mon: { closed: bh.mon?.closed ?? false, open: bh.mon?.open ?? '11:00', close: bh.mon?.close ?? '21:00' },
-      tue: { closed: bh.tue?.closed ?? false, open: bh.tue?.open ?? '11:00', close: bh.tue?.close ?? '21:00' },
-      wed: { closed: bh.wed?.closed ?? false, open: bh.wed?.open ?? '11:00', close: bh.wed?.close ?? '21:00' },
-      thu: { closed: bh.thu?.closed ?? false, open: bh.thu?.open ?? '11:00', close: bh.thu?.close ?? '21:00' },
-      fri: { closed: bh.fri?.closed ?? false, open: bh.fri?.open ?? '11:00', close: bh.fri?.close ?? '21:00' },
-      sat: { closed: bh.sat?.closed ?? false, open: bh.sat?.open ?? '11:00', close: bh.sat?.close ?? '21:00' },
-      sun: { closed: bh.sun?.closed ?? true,  open: bh.sun?.open ?? '11:00', close: bh.sun?.close ?? '21:00' },
-    },
-    isPartner: r.isPartner,
-    partnerInfo: r.partnerInfo ? JSON.stringify(r.partnerInfo, null, 2) : '',
-    categoryIds: r.categories?.map((c) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (c as any).categoryId ?? (c as any).id ?? c;
-    }) ?? [],
-    menus: r.menus?.map((m) => ({
-      id: m.id,
-      name: m.name,
-      price: m.price,
-      imageUrl: m.imageUrl ?? '',
-      isSignature: m.isSignature,
-    })) ?? [],
-  };
-}
-
-export function defaultFormValues(): RestaurantFormValues {
-  return {
-    name: '',
-    zone: 'FRONT_GATE',
-    address: '',
-    phone: '',
-    latitude: 37.6192,
-    longitude: 127.0589,
-    businessHours: {
-      mon: defaultDayHours(), tue: defaultDayHours(), wed: defaultDayHours(),
-      thu: defaultDayHours(), fri: defaultDayHours(),
-      sat: defaultDayHours(),
-      sun: { closed: true, open: '11:00', close: '21:00' },
-    },
-    isPartner: false,
-    partnerInfo: '',
-    categoryIds: [],
-    menus: [],
-  };
-}
+// zod .default() 가 input 에서는 optional, output 에서는 required 라
+// useForm + zodResolver 와 타입을 맞추려면 input 타입을 사용해야 한다.
+export type RestaurantFormValues = z.input<typeof restaurantSchema>;
 
 interface Props {
   defaultValues: RestaurantFormValues;
@@ -348,35 +295,38 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
         <Controller
           control={control}
           name="categoryIds"
-          render={({ field }) => (
-            <div className="flex flex-wrap gap-2">
-              {categories?.map((cat) => {
-                const checked = field.value.includes(cat.id);
-                return (
-                  <label key={cat.id} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                    checked
-                      ? 'border-primary-500 bg-primary-50 text-primary-600'
-                      : 'border-border bg-muted text-ink-body'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={checked}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          field.onChange([...field.value, cat.id]);
-                        } else {
-                          field.onChange(field.value.filter((id) => id !== cat.id));
-                        }
-                      }}
-                    />
-                    {cat.icon && <span>{cat.icon}</span>}
-                    {cat.name}
-                  </label>
-                );
-              })}
-            </div>
-          )}
+          render={({ field }) => {
+            const ids = field.value ?? [];
+            return (
+              <div className="flex flex-wrap gap-2">
+                {categories?.map((cat) => {
+                  const checked = ids.includes(cat.id);
+                  return (
+                    <label key={cat.id} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                      checked
+                        ? 'border-primary-500 bg-primary-50 text-primary-600'
+                        : 'border-border bg-muted text-ink-body'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={checked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            field.onChange([...ids, cat.id]);
+                          } else {
+                            field.onChange(ids.filter((id) => id !== cat.id));
+                          }
+                        }}
+                      />
+                      {cat.icon && <span>{cat.icon}</span>}
+                      {cat.name}
+                    </label>
+                  );
+                })}
+              </div>
+            );
+          }}
         />
       </div>
 

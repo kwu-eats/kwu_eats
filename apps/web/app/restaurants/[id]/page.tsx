@@ -1,12 +1,13 @@
-import { getRestaurant } from '@/lib/api/restaurants';
-import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+
 import { BusinessHours } from '@/components/restaurant/BusinessHours';
 import { DetailHeader } from '@/components/restaurant/DetailHeader';
 import { MenuList } from '@/components/restaurant/MenuList';
 import { RestaurantHero } from '@/components/restaurant/RestaurantHero';
 import { RestaurantInfo } from '@/components/restaurant/RestaurantInfo';
 import { StickyBottomBar } from '@/components/restaurant/StickyBottomBar';
+import { getRestaurant } from '@/lib/api/restaurants';
 
 interface Props {
   params: { id: string };
