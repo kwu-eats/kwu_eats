@@ -74,6 +74,10 @@ test.describe('메인 지도 페이지', () => {
       .first();
 
     await expect(restaurantCard).toBeVisible({ timeout: 15_000 });
+
+    // 바텀 시트가 peek(120px) 상태라 카드가 뷰포트 밖.
+    // 검색 FAB 클릭으로 시트를 full 로 펼친 뒤 클릭한다.
+    await page.getByRole('button', { name: '식당 검색' }).click();
     await restaurantCard.click();
 
     // 상세 페이지 URL 진입
