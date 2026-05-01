@@ -24,3 +24,14 @@ temp
 apps/web/playwright-report
 apps/web/test-results
 apps/web/playwright/.cache
+apps/web/e2e
+apps/web/playwright.config.ts
+
+# CI / 메타
+.github
+docs
+docker-compose*.yml
+
+# 단위 테스트 파일 (운영 이미지 불필요)
+**/*.spec.ts
+**/*.test.ts
