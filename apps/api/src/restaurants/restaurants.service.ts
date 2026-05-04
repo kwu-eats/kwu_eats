@@ -4,9 +4,16 @@ import { Prisma } from '@prisma/client';
 import { isRestaurantOpen } from '../common/utils/business-hours.util';
 import { PrismaService } from '../prisma/prisma.service';
 
-import { CreateRestaurantDto } from './dto/create-restaurant.dto';
+import { CreateRestaurantDto, PartnershipInputDto } from './dto/create-restaurant.dto';
 import { QueryRestaurantDto } from './dto/query-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
+
+const PARTNERSHIPS_SELECT = {
+  partnerships: {
+    select: { id: true, college: true, instagramUrl: true },
+    orderBy: { college: 'asc' as const },
+  },
+};
 
 const RESTAURANT_LIST_SELECT = {
   id: true,
@@ -18,7 +25,6 @@ const RESTAURANT_LIST_SELECT = {
   phone: true,
   businessHours: true,
   isPartner: true,
-  partnerInfo: true,
   categories: {
     select: {
       category: { select: { id: true, name: true, icon: true } },
@@ -32,6 +38,7 @@ const RESTAURANT_LIST_SELECT = {
     ],
     take: 1,
   },
+  ...PARTNERSHIPS_SELECT,
 } satisfies Prisma.RestaurantSelect;
 
 const RESTAURANT_DETAIL_SELECT = {
@@ -44,7 +51,6 @@ const RESTAURANT_DETAIL_SELECT = {
   phone: true,
   businessHours: true,
   isPartner: true,
-  partnerInfo: true,
   createdAt: true,
   updatedAt: true,
   categories: {
@@ -65,6 +71,7 @@ const RESTAURANT_DETAIL_SELECT = {
       { price: 'asc' as const },
     ],
   },
+  ...PARTNERSHIPS_SELECT,
 } satisfies Prisma.RestaurantSelect;
 
 @Injectable()
@@ -99,7 +106,7 @@ export class RestaurantsService {
       phone: r.phone,
       businessHours: r.businessHours,
       isPartner: r.isPartner,
-      partnerInfo: r.partnerInfo,
+      partnerships: r.partnerships,
       isOpen: isRestaurantOpen(r.businessHours),
       categories: r.categories.map((rc) => rc.category),
       featuredMenu: r.menus[0] ?? null,
@@ -130,7 +137,7 @@ export class RestaurantsService {
   }
 
   async create(dto: CreateRestaurantDto) {
-    const { categoryIds, businessHours, partnerInfo, ...data } = dto;
+    const { categoryIds, businessHours, partnerships, ...data } = dto;
 
     if (categoryIds?.length) {
       await this.assertCategoriesExist(categoryIds);
@@ -141,9 +148,6 @@ export class RestaurantsService {
         data: {
           ...data,
           businessHours: businessHours as Prisma.InputJsonValue,
-          partnerInfo: partnerInfo !== undefined
-            ? (partnerInfo as Prisma.InputJsonValue)
-            : undefined,
         },
         select: RESTAURANT_DETAIL_SELECT,
       });
@@ -155,21 +159,30 @@ export class RestaurantsService {
             categoryId,
           })),
         });
+      }
 
-        return tx.restaurant.findUniqueOrThrow({
-          where: { id: restaurant.id },
-          select: RESTAURANT_DETAIL_SELECT,
+      if (partnerships?.length) {
+        await tx.restaurantPartnership.createMany({
+          data: partnerships.map((p) => ({
+            restaurantId: restaurant.id,
+            college: p.college,
+            instagramUrl: p.instagramUrl,
+          })),
         });
       }
 
-      return restaurant;
+      // partnerships / categories 동기화 후 최신 상태 재조회
+      return tx.restaurant.findUniqueOrThrow({
+        where: { id: restaurant.id },
+        select: RESTAURANT_DETAIL_SELECT,
+      });
     });
   }
 
   async update(id: string, dto: UpdateRestaurantDto) {
     await this.findOne(id);
 
-    const { categoryIds, businessHours, partnerInfo, ...data } = dto;
+    const { categoryIds, businessHours, partnerships, ...data } = dto;
 
     if (categoryIds?.length) {
       await this.assertCategoriesExist(categoryIds);
@@ -186,17 +199,33 @@ export class RestaurantsService {
         }
       }
 
-      return tx.restaurant.update({
+      // partnerships 가 명시적으로 들어왔을 때만 동기화 (undefined → 변경 없음)
+      if (partnerships !== undefined) {
+        await tx.restaurantPartnership.deleteMany({ where: { restaurantId: id } });
+
+        if (partnerships.length) {
+          await tx.restaurantPartnership.createMany({
+            data: partnerships.map((p: PartnershipInputDto) => ({
+              restaurantId: id,
+              college: p.college,
+              instagramUrl: p.instagramUrl,
+            })),
+          });
+        }
+      }
+
+      await tx.restaurant.update({
         where: { id },
         data: {
           ...data,
           ...(businessHours !== undefined && {
             businessHours: businessHours as Prisma.InputJsonValue,
           }),
-          ...(partnerInfo !== undefined && {
-            partnerInfo: partnerInfo as Prisma.InputJsonValue,
-          }),
         },
+      });
+
+      return tx.restaurant.findUniqueOrThrow({
+        where: { id },
         select: RESTAURANT_DETAIL_SELECT,
       });
     });

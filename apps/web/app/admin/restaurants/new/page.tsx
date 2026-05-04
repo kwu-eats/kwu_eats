@@ -33,11 +33,6 @@ export default function NewRestaurantPage() {
   const createRestaurant = useCreateRestaurant();
 
   async function handleSubmit(values: RestaurantFormValues) {
-    let partnerInfo: Record<string, unknown> | undefined;
-    if (values.isPartner && values.partnerInfo) {
-      try { partnerInfo = JSON.parse(values.partnerInfo); } catch { partnerInfo = {}; }
-    }
-
     const restaurant = await createRestaurant.mutateAsync({
       name: values.name,
       zone: values.zone,
@@ -47,7 +42,7 @@ export default function NewRestaurantPage() {
       longitude: values.longitude,
       businessHours: buildBusinessHours(values),
       isPartner: values.isPartner,
-      partnerInfo,
+      partnerships: values.isPartner ? values.partnerships ?? [] : [],
       categoryIds: values.categoryIds,
     });
 

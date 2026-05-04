@@ -29,7 +29,11 @@ export function toFormValues(r: RestaurantWithRelations): RestaurantFormValues {
       sun: { closed: bh.sun?.closed ?? true, open: bh.sun?.open ?? '11:00', close: bh.sun?.close ?? '21:00' },
     },
     isPartner: r.isPartner,
-    partnerInfo: r.partnerInfo ? JSON.stringify(r.partnerInfo, null, 2) : '',
+    partnerships:
+      r.partnerships?.map((p) => ({
+        college: p.college,
+        instagramUrl: p.instagramUrl,
+      })) ?? [],
     categoryIds:
       r.categories?.map((c) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,7 +68,7 @@ export function defaultFormValues(): RestaurantFormValues {
       sun: { closed: true, open: '11:00', close: '21:00' },
     },
     isPartner: false,
-    partnerInfo: '',
+    partnerships: [],
     categoryIds: [],
     menus: [],
   };

@@ -32,8 +32,18 @@ enum AdminRole {
   ADMIN
 }
 
+enum College {
+  AI_CONVERGENCE
+  ENGINEERING
+  NATURAL_SCIENCE
+  BUSINESS
+  ELECTRONICS_INFO
+  HUMANITIES_SOCIAL
+  POLICY_LAW
+}
+
 model Restaurant {
-  id                   String               @id @default(cuid())
+  id                   String                  @id @default(cuid())
   name                 String
   zone                 Zone
   latitude             Float
@@ -41,17 +51,31 @@ model Restaurant {
   address              String
   phone                String?
   businessHours        Json
-  isPartner            Boolean              @default(false)
-  partnerInfo          Json?
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  isPartner            Boolean                 @default(false)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
   menus                Menu[]
   categories           RestaurantCategory[]
+  partnerships         RestaurantPartnership[]
   reports              Report[]
 
   @@index([zone])
   @@index([isPartner])
   @@index([zone, isPartner])
+}
+
+// 식당 ↔ 단과대학 N:M (each row = (식당 × 단과대학) 1쌍, 그 쌍의 인스타 안내 게시글 URL)
+model RestaurantPartnership {
+  id           String     @id @default(cuid())
+  restaurantId String
+  college      College
+  instagramUrl String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, college])
+  @@index([college])
 }
 
 model Menu {

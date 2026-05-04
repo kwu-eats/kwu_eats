@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Zone } from '@prisma/client';
+import { College, Zone } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
+  ArrayUnique,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -8,8 +10,24 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUrl,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
+
+export class PartnershipInputDto {
+  @ApiProperty({ enum: College, description: '제휴 단과대학' })
+  @IsEnum(College)
+  college: College;
+
+  @ApiProperty({
+    example: 'https://instagram.com/p/abcdef',
+    description: '해당 단과대학용 Instagram 안내 게시글 URL',
+  })
+  @IsUrl({ require_protocol: true })
+  @MaxLength(500)
+  instagramUrl: string;
+}
 
 export class CreateRestaurantDto {
   @ApiProperty({ example: '할매분식', description: '식당 이름' })
@@ -52,10 +70,18 @@ export class CreateRestaurantDto {
   @IsBoolean()
   isPartner?: boolean;
 
-  @ApiPropertyOptional({ description: '제휴 상세 정보' })
+  @ApiPropertyOptional({
+    type: [PartnershipInputDto],
+    description: '제휴 단과대학 + Instagram URL 목록 (식당당 단과대학별 1개)',
+  })
   @IsOptional()
-  @IsObject()
-  partnerInfo?: Record<string, unknown>;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PartnershipInputDto)
+  @ArrayUnique((p: PartnershipInputDto) => p.college, {
+    message: '같은 단과대학을 중복으로 등록할 수 없어요',
+  })
+  partnerships?: PartnershipInputDto[];
 
   @ApiPropertyOptional({ type: [String], description: '연결할 카테고리 ID 목록' })
   @IsOptional()

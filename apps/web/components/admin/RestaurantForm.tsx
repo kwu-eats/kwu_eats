@@ -47,6 +47,22 @@ const menuRowSchema = z.object({
   isSignature: z.boolean().default(false),
 });
 
+const partnershipRowSchema = z.object({
+  college: z.enum([
+    'AI_CONVERGENCE',
+    'ENGINEERING',
+    'NATURAL_SCIENCE',
+    'BUSINESS',
+    'ELECTRONICS_INFO',
+    'HUMANITIES_SOCIAL',
+    'POLICY_LAW',
+  ]),
+  instagramUrl: z
+    .string()
+    .min(1, '인스타그램 URL을 입력해주세요')
+    .url('올바른 URL 형식이 아니에요 (예: https://instagram.com/...)'),
+});
+
 const restaurantSchema = z.object({
   name: z.string().min(1, '식당명을 입력해주세요'),
   zone: z.enum(['KWANGWOON_STATION', 'FRONT_GATE', 'BACK_GATE']),
@@ -59,7 +75,7 @@ const restaurantSchema = z.object({
     thu: dayHoursSchema, fri: dayHoursSchema, sat: dayHoursSchema, sun: dayHoursSchema,
   }),
   isPartner: z.boolean().default(false),
-  partnerInfo: z.string().optional(),
+  partnerships: z.array(partnershipRowSchema).default([]),
   categoryIds: z.array(z.string()).default([]),
   menus: z.array(menuRowSchema).default([]),
 });
@@ -91,6 +107,15 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
   const { fields: menuFields, append: appendMenu, remove: removeMenu } = useFieldArray({
     control,
     name: 'menus',
+  });
+
+  const {
+    fields: partnershipFields,
+    append: appendPartnership,
+    remove: removePartnership,
+  } = useFieldArray({
+    control,
+    name: 'partnerships',
   });
 
   const isPartner = watch('isPartner');
@@ -386,15 +411,71 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
           />
           <span className="text-sm font-medium text-ink-primary">제휴 식당</span>
         </label>
+
         {isPartner && (
-          <div>
-            <label className={labelClass}>제휴 상세 정보 (JSON)</label>
-            <textarea
-              {...register('partnerInfo')}
-              rows={4}
-              placeholder={'{\n  "discount": "학생 10% 할인"\n}'}
-              className="w-full rounded-xl border border-border bg-muted p-3 text-sm text-ink-body placeholder:text-ink-muted focus:border-primary-500 focus:outline-none resize-none font-mono"
-            />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-ink-muted">
+                단과대학별 인스타그램 안내 게시글 URL을 등록하세요
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  appendPartnership({ college: 'ENGINEERING', instagramUrl: '' })
+                }
+                className="flex items-center gap-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-body transition-colors hover:bg-muted"
+              >
+                <Plus size={14} />
+                단과대학 추가
+              </button>
+            </div>
+
+            {partnershipFields.length === 0 && (
+              <p className="rounded-lg bg-muted px-3 py-4 text-center text-xs text-ink-muted">
+                아직 등록된 제휴 단과대학이 없어요
+              </p>
+            )}
+
+            {partnershipFields.map((field, index) => {
+              const fieldErrors = errors.partnerships?.[index];
+              return (
+                <div key={field.id} className="rounded-lg border border-border bg-muted p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <select
+                      {...register(`partnerships.${index}.college`)}
+                      className="h-9 flex-1 rounded-lg border border-border bg-surface px-2 text-sm text-ink-body focus:border-primary-500 focus:outline-none"
+                    >
+                      <option value="AI_CONVERGENCE">인공지능융합대학</option>
+                      <option value="ENGINEERING">공과대학</option>
+                      <option value="NATURAL_SCIENCE">자연과학대학</option>
+                      <option value="BUSINESS">경영대학</option>
+                      <option value="ELECTRONICS_INFO">전자정보공과대학</option>
+                      <option value="HUMANITIES_SOCIAL">인문사회과학대학</option>
+                      <option value="POLICY_LAW">정책법학대학</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => removePartnership(index)}
+                      aria-label="제휴 삭제"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-ink-muted transition-colors hover:bg-red-50 hover:text-red-500"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <input
+                    type="url"
+                    {...register(`partnerships.${index}.instagramUrl`)}
+                    placeholder="https://instagram.com/p/..."
+                    className={inputClass}
+                  />
+                  {fieldErrors?.instagramUrl && (
+                    <p className="text-xs text-red-500">
+                      {fieldErrors.instagramUrl.message}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
