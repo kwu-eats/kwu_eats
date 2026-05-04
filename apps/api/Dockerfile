@@ -9,7 +9,7 @@
 #   3) runner   - 비-root 유저, deploy 산출물만 들고 실행
 
 # ===== Stage 1: builder =====
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 
 # Prisma 가 OpenSSL 의존
 RUN apk add --no-cache openssl libc6-compat
@@ -51,7 +51,7 @@ RUN cp -R /workspace/node_modules/.prisma /deploy/node_modules/.prisma && \
 
 
 # ===== Stage 3: runner =====
-FROM node:20-alpine AS runner
+FROM node:25-alpine AS runner
 
 RUN apk add --no-cache openssl libc6-compat
 
