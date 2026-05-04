@@ -110,7 +110,7 @@ jobs:
 
       - name: Build api image
         if: matrix.app == 'api'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./apps/api/Dockerfile
@@ -122,7 +122,7 @@ jobs:
 
       - name: Build web image
         if: matrix.app == 'web'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./apps/web/Dockerfile
