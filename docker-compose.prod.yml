@@ -1,15 +1,19 @@
 # 팡슐랭 운영 docker-compose
 #
-# 실행:
+# AWS 시나리오 (기본 — profile 미지정):
 #   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+#   - 이미지: ECR pull (API_IMAGE / WEB_IMAGE 로 SHA 태그)
+#   - DB: 외부 RDS (postgres 컨테이너 비활성)
+#   - 스토리지: AWS S3 (minio 컨테이너 비활성)
 #
-# 이미지는 ECR 에서 pull (CI 가 git SHA 태그로 push). 환경변수의
-# API_IMAGE / WEB_IMAGE 로 태그 지정. 미지정 시 :latest 사용.
-#
-# DB 는 EC2 안 컨테이너가 아닌 외부 RDS 사용 → postgres 서비스 없음.
-# 마이그레이션은 별도로 실행:
-#   docker compose -f docker-compose.prod.yml --env-file .env.production \
-#     run --rm api node_modules/.bin/prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+# DGX STATION 시나리오 (자체 호스팅):
+#   docker compose -f docker-compose.prod.yml \
+#     --profile self-hosted-db --profile self-hosted-storage \
+#     --env-file .env.production up -d
+#   - 이미지: 로컬 빌드 (build context 사용)
+#   - DB: postgres 컨테이너 (named volume pg_data)
+#   - 스토리지: minio 컨테이너 (named volume minio_data)
+#   - 자세한 절차는 docs/배포_DGX.md 참고.
 
 services:
   nginx:
@@ -17,7 +21,8 @@ services:
     container_name: pangchelin-nginx
     restart: always
     ports:
-      - "80:80"
+      # AWS: 80 (ALB/CloudFront 가 SSL 종단). DGX: 6006 (외부 NAT 20320).
+      - "${NGINX_HOST_PORT:-80}:80"
       - "443:443"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
@@ -40,6 +45,10 @@ services:
 
   api:
     image: ${API_IMAGE:-pangchelin-api:latest}
+    # DGX 에서 로컬 빌드용. AWS 시나리오에선 image 가 ECR 에서 pull 되어 build 무시됨.
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
     container_name: pangchelin-api
     restart: always
     expose:
@@ -49,11 +58,21 @@ services:
       PORT: "4000"
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
-      AWS_REGION: ${AWS_REGION}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       CORS_ORIGIN: ${CORS_ORIGIN}
+      # AWS S3 (운영). 빈 값이면 코드가 S3_* 로 폴백.
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      # S3 호환 (DGX/MinIO). 빈 값이면 AWS_* 로 폴백.
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+      # 공개 이미지 URL 베이스 (DGX: '/uploads', AWS: 비워둠 또는 CloudFront)
+      PUBLIC_IMAGE_BASE_URL: ${PUBLIC_IMAGE_BASE_URL:-}
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:4000/health"]
       interval: 30s
@@ -67,17 +86,12 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    # CloudWatch 로 직접 보낼 때는 위 logging 을 다음으로 교체:
-    # logging:
-    #   driver: awslogs
-    #   options:
-    #     awslogs-region: ap-northeast-2
-    #     awslogs-group: /ec2/pangchelin
-    #     awslogs-stream-prefix: api
-    #     awslogs-create-group: "true"
 
   web:
     image: ${WEB_IMAGE:-pangchelin-web:latest}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
     container_name: pangchelin-web
     restart: always
     expose:
@@ -105,7 +119,92 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # ─── DGX 전용: 자체 호스팅 PostgreSQL ───
+  # AWS 시나리오에서는 profile 미지정으로 비활성. RDS 사용.
+  postgres:
+    image: postgres:16-alpine
+    container_name: pangchelin-postgres
+    restart: always
+    profiles:
+      - self-hosted-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pangchelin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-pangchelin}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pangchelin} -d ${POSTGRES_DB:-pangchelin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - pangchelin-prod
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ─── DGX 전용: 자체 호스팅 MinIO (S3 호환) ───
+  minio:
+    image: minio/minio:latest
+    container_name: pangchelin-minio
+    restart: always
+    profiles:
+      - self-hosted-storage
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - pangchelin-prod
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ─── DGX 전용: MinIO 일회성 초기화 (bucket 생성 + anonymous download 정책) ───
+  minio-init:
+    image: minio/mc:latest
+    container_name: pangchelin-minio-init
+    profiles:
+      - self-hosted-storage
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET:-pangchelin}
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+      (mc mb --ignore-existing local/$$S3_BUCKET) &&
+      mc anonymous set download local/$$S3_BUCKET &&
+      echo 'minio init done'
+      "
+    restart: "no"
+    networks:
+      - pangchelin-prod
+
 networks:
   pangchelin-prod:
     name: pangchelin-prod
     driver: bridge
+
+volumes:
+  pg_data:
+    name: pangchelin-pg-data
+  minio_data:
+    name: pangchelin-minio-data

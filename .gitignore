@@ -35,6 +35,9 @@ Thumbs.db
 postgres_data/
 redis_data/
 
+# DGX 백업 산출물 (./scripts/backup-dgx.sh 출력)
+backups/
+
 # Prisma
 apps/api/prisma/migrations/**/migration_lock.toml
 
