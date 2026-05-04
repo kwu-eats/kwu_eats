@@ -12,7 +12,7 @@
 #   3) runner   - 비-root 유저, standalone + static + public 만 실행
 
 # ===== Stage 1: deps =====
-FROM node:20-alpine AS deps
+FROM node:25-alpine AS deps
 
 RUN apk add --no-cache libc6-compat
 RUN corepack enable
@@ -29,7 +29,7 @@ RUN pnpm install --frozen-lockfile
 
 
 # ===== Stage 2: builder =====
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 
 RUN apk add --no-cache libc6-compat
 RUN corepack enable
@@ -59,7 +59,7 @@ RUN pnpm build
 
 
 # ===== Stage 3: runner =====
-FROM node:20-alpine AS runner
+FROM node:25-alpine AS runner
 
 RUN apk add --no-cache libc6-compat
 
