@@ -1,12 +1,14 @@
-import { getRestaurant } from '@/lib/api/restaurants';
-import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+
 import { BusinessHours } from '@/components/restaurant/BusinessHours';
 import { DetailHeader } from '@/components/restaurant/DetailHeader';
 import { MenuList } from '@/components/restaurant/MenuList';
+import { PartnerInfo } from '@/components/restaurant/PartnerInfo';
 import { RestaurantHero } from '@/components/restaurant/RestaurantHero';
 import { RestaurantInfo } from '@/components/restaurant/RestaurantInfo';
 import { StickyBottomBar } from '@/components/restaurant/StickyBottomBar';
+import { getRestaurant } from '@/lib/api/restaurants';
 
 interface Props {
   params: { id: string };
@@ -50,6 +52,13 @@ export default async function RestaurantDetailPage({ params }: Props) {
 
       <div className="px-4 py-5 space-y-6">
         <RestaurantInfo restaurant={restaurant} />
+
+        {restaurant.partnerships && restaurant.partnerships.length > 0 && (
+          <>
+            <hr className="border-border" />
+            <PartnerInfo partnerships={restaurant.partnerships} />
+          </>
+        )}
 
         <hr className="border-border" />
 

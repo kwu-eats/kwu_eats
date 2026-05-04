@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import type { ReportStatus, ReportType } from '@pangchelin/types';
 import { useRouter, useParams } from 'next/navigation';
 import Script from 'next/script';
+import { useEffect, useRef, useState } from 'react';
 
-import { useAdminReport } from '@/hooks/queries/useReports';
+import { clientEnv } from '@/env';
 import { useApproveReport } from '@/hooks/mutations/useApproveReport';
 import { useRejectReport } from '@/hooks/mutations/useRejectReport';
-import { clientEnv } from '@/env';
-import type { ReportStatus, ReportType } from '@pangchelin/types';
+import { useAdminReport } from '@/hooks/queries/useReports';
 
 const TYPE_LABEL: Record<ReportType, string> = {
   RESTAURANT_INFO: '정보 수정',

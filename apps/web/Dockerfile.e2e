@@ -1,0 +1,13 @@
+# Playwright E2E 러너용 이미지
+# 공식 Playwright 이미지(브라우저+OS deps 포함)를 베이스로 사용하고
+# corepack 으로 pnpm 만 활성화합니다. 소스/의존성은 docker-compose 에서 mount.
+FROM mcr.microsoft.com/playwright:v1.47.0-jammy
+
+ENV CI=true \
+    PNPM_HOME=/root/.local/share/pnpm \
+    PATH=/root/.local/share/pnpm:$PATH
+
+# corepack 으로 pnpm 활성화 (apps/web/Dockerfile.dev 와 동일한 방식)
+RUN corepack enable
+
+WORKDIR /workspace

@@ -17,6 +17,7 @@ async function main() {
   await prisma.report.deleteMany();
   await prisma.menu.deleteMany();
   await prisma.restaurantCategory.deleteMany();
+  await prisma.restaurantPartnership.deleteMany();
   await prisma.category.deleteMany();
   await prisma.restaurant.deleteMany();
   await prisma.admin.deleteMany();
@@ -58,9 +59,17 @@ async function main() {
         phone: '02-943-1001',
         businessHours: defaultBusinessHours,
         isPartner: true,
-        partnerInfo: {
-          badgeLabel: '학생 제휴',
-          benefit: '전 메뉴 5% 할인',
+        partnerships: {
+          create: [
+            {
+              college: 'ENGINEERING',
+              instagramUrl: 'https://instagram.com/p/seed-kwoonbunsik-eng',
+            },
+            {
+              college: 'AI_CONVERGENCE',
+              instagramUrl: 'https://instagram.com/p/seed-kwoonbunsik-ai',
+            },
+          ],
         },
         categories: {
           create: [{ categoryId: categoryMap.분식 }, { categoryId: categoryMap.한식 }],
@@ -133,9 +142,21 @@ async function main() {
           sun: { open: '11:30', close: '20:00' },
         },
         isPartner: true,
-        partnerInfo: {
-          badgeLabel: '세트 할인',
-          benefit: '음료 무료 업그레이드',
+        partnerships: {
+          create: [
+            {
+              college: 'BUSINESS',
+              instagramUrl: 'https://instagram.com/p/seed-creampasta-biz',
+            },
+            {
+              college: 'HUMANITIES_SOCIAL',
+              instagramUrl: 'https://instagram.com/p/seed-creampasta-hum',
+            },
+            {
+              college: 'POLICY_LAW',
+              instagramUrl: 'https://instagram.com/p/seed-creampasta-law',
+            },
+          ],
         },
         categories: {
           create: [{ categoryId: categoryMap.양식 }, { categoryId: categoryMap.카페 }],

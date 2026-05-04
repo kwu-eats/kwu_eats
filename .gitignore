@@ -42,6 +42,11 @@ apps/api/prisma/migrations/**/migration_lock.toml
 coverage/
 .nyc_output/
 
+# Playwright E2E
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/playwright/.cache/
+
 # TypeScript
 *.tsbuildinfo
 

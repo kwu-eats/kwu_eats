@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 
 import { AdminOnly } from '../auth/decorators/admin-only.decorator';
+
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -29,14 +30,14 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
-  @ApiOperation({ summary: '카테고리 전체 조회' })
+  @ApiOperation({ summary: '카테고리 전체 조회 (5분 캐시)' })
   @ApiOkResponse({ description: '카테고리 목록' })
   findAll() {
     return this.categoriesService.findAll();
   }
 
   @Get(':id')
-  @ApiOperation({ summary: '카테고리 단일 조회' })
+  @ApiOperation({ summary: '카테고리 단일 조회 (5분 캐시)' })
   @ApiOkResponse({ description: '카테고리 상세' })
   @ApiNotFoundResponse({ description: '카테고리를 찾을 수 없음' })
   findOne(@Param('id') id: string) {

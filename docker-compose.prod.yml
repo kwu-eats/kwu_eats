@@ -1,0 +1,111 @@
+# 팡슐랭 운영 docker-compose
+#
+# 실행:
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+#
+# 이미지는 ECR 에서 pull (CI 가 git SHA 태그로 push). 환경변수의
+# API_IMAGE / WEB_IMAGE 로 태그 지정. 미지정 시 :latest 사용.
+#
+# DB 는 EC2 안 컨테이너가 아닌 외부 RDS 사용 → postgres 서비스 없음.
+# 마이그레이션은 별도로 실행:
+#   docker compose -f docker-compose.prod.yml --env-file .env.production \
+#     run --rm api node_modules/.bin/prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: pangchelin-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      # Let's Encrypt 사용 시 certbot 볼륨 (CloudFront 가 SSL 종단하면 불필요)
+      - ./docker/nginx/certbot/conf:/etc/letsencrypt:ro
+      - ./docker/nginx/certbot/www:/var/www/certbot:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - pangchelin-prod
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
+    image: ${API_IMAGE:-pangchelin-api:latest}
+    container_name: pangchelin-api
+    restart: always
+    expose:
+      - "4000"
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      AWS_REGION: ${AWS_REGION}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - pangchelin-prod
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # CloudWatch 로 직접 보낼 때는 위 logging 을 다음으로 교체:
+    # logging:
+    #   driver: awslogs
+    #   options:
+    #     awslogs-region: ap-northeast-2
+    #     awslogs-group: /ec2/pangchelin
+    #     awslogs-stream-prefix: api
+    #     awslogs-create-group: "true"
+
+  web:
+    image: ${WEB_IMAGE:-pangchelin-web:latest}
+    container_name: pangchelin-web
+    restart: always
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      # NEXT_PUBLIC_* 는 빌드 시점 인라인 → 런타임에서는 영향 없음
+      # (값을 바꾸려면 새 이미지 빌드 + 배포 필요)
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - pangchelin-prod
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  pangchelin-prod:
+    name: pangchelin-prod
+    driver: bridge

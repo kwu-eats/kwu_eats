@@ -1,7 +1,6 @@
+import type { Admin } from '@pangchelin/types';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-import type { Admin } from '@pangchelin/types';
 
 interface AuthStore {
   token: string | null;

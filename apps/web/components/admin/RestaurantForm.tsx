@@ -1,17 +1,21 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus, Trash2, ImagePlus, Star, Search } from 'lucide-react';
+import Script from 'next/script';
 import { useEffect, useRef, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import Script from 'next/script';
-import { Plus, Trash2, ImagePlus, Star, Search } from 'lucide-react';
 
+import { clientEnv } from '@/env';
 import { useCategories } from '@/hooks/queries/useCategories';
 import { adminUploadImage } from '@/lib/api/upload';
 import { useAuthStore } from '@/lib/stores/authStore';
-import { clientEnv } from '@/env';
-import type { RestaurantWithRelations } from '@pangchelin/types';
+
+// helpers 는 별도 파일로 분리되어 있어 페이지에서 정적 import 해도
+// 폼 본체(react-hook-form/zod/lucide/Script) 무게를 끌어오지 않는다.
+// 컴포넌트만 dynamic import 하면 됨.
+export { defaultFormValues, toFormValues } from './RestaurantForm.helpers';
 
 const DAYS = [
   { key: 'mon', label: '월' },
@@ -43,7 +47,23 @@ const menuRowSchema = z.object({
   isSignature: z.boolean().default(false),
 });
 
-export const restaurantSchema = z.object({
+const partnershipRowSchema = z.object({
+  college: z.enum([
+    'AI_CONVERGENCE',
+    'ENGINEERING',
+    'NATURAL_SCIENCE',
+    'BUSINESS',
+    'ELECTRONICS_INFO',
+    'HUMANITIES_SOCIAL',
+    'POLICY_LAW',
+  ]),
+  instagramUrl: z
+    .string()
+    .min(1, '인스타그램 URL을 입력해주세요')
+    .url('올바른 URL 형식이 아니에요 (예: https://instagram.com/...)'),
+});
+
+const restaurantSchema = z.object({
   name: z.string().min(1, '식당명을 입력해주세요'),
   zone: z.enum(['KWANGWOON_STATION', 'FRONT_GATE', 'BACK_GATE']),
   address: z.string().min(1, '주소를 입력해주세요'),
@@ -55,71 +75,14 @@ export const restaurantSchema = z.object({
     thu: dayHoursSchema, fri: dayHoursSchema, sat: dayHoursSchema, sun: dayHoursSchema,
   }),
   isPartner: z.boolean().default(false),
-  partnerInfo: z.string().optional(),
+  partnerships: z.array(partnershipRowSchema).default([]),
   categoryIds: z.array(z.string()).default([]),
   menus: z.array(menuRowSchema).default([]),
 });
 
-export type RestaurantFormValues = z.infer<typeof restaurantSchema>;
-
-function defaultDayHours() {
-  return { closed: false, open: '11:00', close: '21:00' };
-}
-
-export function toFormValues(r: RestaurantWithRelations): RestaurantFormValues {
-  const bh = (r.businessHours ?? {}) as Record<string, { open?: string; close?: string; closed?: boolean }>;
-  return {
-    name: r.name,
-    zone: r.zone as RestaurantFormValues['zone'],
-    address: r.address,
-    phone: r.phone ?? '',
-    latitude: r.latitude,
-    longitude: r.longitude,
-    businessHours: {
-      mon: { closed: bh.mon?.closed ?? false, open: bh.mon?.open ?? '11:00', close: bh.mon?.close ?? '21:00' },
-      tue: { closed: bh.tue?.closed ?? false, open: bh.tue?.open ?? '11:00', close: bh.tue?.close ?? '21:00' },
-      wed: { closed: bh.wed?.closed ?? false, open: bh.wed?.open ?? '11:00', close: bh.wed?.close ?? '21:00' },
-      thu: { closed: bh.thu?.closed ?? false, open: bh.thu?.open ?? '11:00', close: bh.thu?.close ?? '21:00' },
-      fri: { closed: bh.fri?.closed ?? false, open: bh.fri?.open ?? '11:00', close: bh.fri?.close ?? '21:00' },
-      sat: { closed: bh.sat?.closed ?? false, open: bh.sat?.open ?? '11:00', close: bh.sat?.close ?? '21:00' },
-      sun: { closed: bh.sun?.closed ?? true,  open: bh.sun?.open ?? '11:00', close: bh.sun?.close ?? '21:00' },
-    },
-    isPartner: r.isPartner,
-    partnerInfo: r.partnerInfo ? JSON.stringify(r.partnerInfo, null, 2) : '',
-    categoryIds: r.categories?.map((c) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (c as any).categoryId ?? (c as any).id ?? c;
-    }) ?? [],
-    menus: r.menus?.map((m) => ({
-      id: m.id,
-      name: m.name,
-      price: m.price,
-      imageUrl: m.imageUrl ?? '',
-      isSignature: m.isSignature,
-    })) ?? [],
-  };
-}
-
-export function defaultFormValues(): RestaurantFormValues {
-  return {
-    name: '',
-    zone: 'FRONT_GATE',
-    address: '',
-    phone: '',
-    latitude: 37.6192,
-    longitude: 127.0589,
-    businessHours: {
-      mon: defaultDayHours(), tue: defaultDayHours(), wed: defaultDayHours(),
-      thu: defaultDayHours(), fri: defaultDayHours(),
-      sat: defaultDayHours(),
-      sun: { closed: true, open: '11:00', close: '21:00' },
-    },
-    isPartner: false,
-    partnerInfo: '',
-    categoryIds: [],
-    menus: [],
-  };
-}
+// zod .default() 가 input 에서는 optional, output 에서는 required 라
+// useForm + zodResolver 와 타입을 맞추려면 input 타입을 사용해야 한다.
+export type RestaurantFormValues = z.input<typeof restaurantSchema>;
 
 interface Props {
   defaultValues: RestaurantFormValues;
@@ -144,6 +107,15 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
   const { fields: menuFields, append: appendMenu, remove: removeMenu } = useFieldArray({
     control,
     name: 'menus',
+  });
+
+  const {
+    fields: partnershipFields,
+    append: appendPartnership,
+    remove: removePartnership,
+  } = useFieldArray({
+    control,
+    name: 'partnerships',
   });
 
   const isPartner = watch('isPartner');
@@ -348,35 +320,38 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
         <Controller
           control={control}
           name="categoryIds"
-          render={({ field }) => (
-            <div className="flex flex-wrap gap-2">
-              {categories?.map((cat) => {
-                const checked = field.value.includes(cat.id);
-                return (
-                  <label key={cat.id} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                    checked
-                      ? 'border-primary-500 bg-primary-50 text-primary-600'
-                      : 'border-border bg-muted text-ink-body'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={checked}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          field.onChange([...field.value, cat.id]);
-                        } else {
-                          field.onChange(field.value.filter((id) => id !== cat.id));
-                        }
-                      }}
-                    />
-                    {cat.icon && <span>{cat.icon}</span>}
-                    {cat.name}
-                  </label>
-                );
-              })}
-            </div>
-          )}
+          render={({ field }) => {
+            const ids = field.value ?? [];
+            return (
+              <div className="flex flex-wrap gap-2">
+                {categories?.map((cat) => {
+                  const checked = ids.includes(cat.id);
+                  return (
+                    <label key={cat.id} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                      checked
+                        ? 'border-primary-500 bg-primary-50 text-primary-600'
+                        : 'border-border bg-muted text-ink-body'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={checked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            field.onChange([...ids, cat.id]);
+                          } else {
+                            field.onChange(ids.filter((id) => id !== cat.id));
+                          }
+                        }}
+                      />
+                      {cat.icon && <span>{cat.icon}</span>}
+                      {cat.name}
+                    </label>
+                  );
+                })}
+              </div>
+            );
+          }}
         />
       </div>
 
@@ -436,15 +411,71 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
           />
           <span className="text-sm font-medium text-ink-primary">제휴 식당</span>
         </label>
+
         {isPartner && (
-          <div>
-            <label className={labelClass}>제휴 상세 정보 (JSON)</label>
-            <textarea
-              {...register('partnerInfo')}
-              rows={4}
-              placeholder={'{\n  "discount": "학생 10% 할인"\n}'}
-              className="w-full rounded-xl border border-border bg-muted p-3 text-sm text-ink-body placeholder:text-ink-muted focus:border-primary-500 focus:outline-none resize-none font-mono"
-            />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-ink-muted">
+                단과대학별 인스타그램 안내 게시글 URL을 등록하세요
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  appendPartnership({ college: 'ENGINEERING', instagramUrl: '' })
+                }
+                className="flex items-center gap-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-body transition-colors hover:bg-muted"
+              >
+                <Plus size={14} />
+                단과대학 추가
+              </button>
+            </div>
+
+            {partnershipFields.length === 0 && (
+              <p className="rounded-lg bg-muted px-3 py-4 text-center text-xs text-ink-muted">
+                아직 등록된 제휴 단과대학이 없어요
+              </p>
+            )}
+
+            {partnershipFields.map((field, index) => {
+              const fieldErrors = errors.partnerships?.[index];
+              return (
+                <div key={field.id} className="rounded-lg border border-border bg-muted p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <select
+                      {...register(`partnerships.${index}.college`)}
+                      className="h-9 flex-1 rounded-lg border border-border bg-surface px-2 text-sm text-ink-body focus:border-primary-500 focus:outline-none"
+                    >
+                      <option value="AI_CONVERGENCE">인공지능융합대학</option>
+                      <option value="ENGINEERING">공과대학</option>
+                      <option value="NATURAL_SCIENCE">자연과학대학</option>
+                      <option value="BUSINESS">경영대학</option>
+                      <option value="ELECTRONICS_INFO">전자정보공과대학</option>
+                      <option value="HUMANITIES_SOCIAL">인문사회과학대학</option>
+                      <option value="POLICY_LAW">정책법학대학</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => removePartnership(index)}
+                      aria-label="제휴 삭제"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-ink-muted transition-colors hover:bg-red-50 hover:text-red-500"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <input
+                    type="url"
+                    {...register(`partnerships.${index}.instagramUrl`)}
+                    placeholder="https://instagram.com/p/..."
+                    className={inputClass}
+                  />
+                  {fieldErrors?.instagramUrl && (
+                    <p className="text-xs text-red-500">
+                      {fieldErrors.instagramUrl.message}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

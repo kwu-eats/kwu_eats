@@ -1,5 +1,6 @@
 import type { Menu } from '@pangchelin/types';
 import Image from 'next/image';
+import { memo, useMemo } from 'react';
 
 interface Props {
   menus: Menu[];
@@ -9,7 +10,13 @@ function formatPrice(price: number) {
   return price.toLocaleString('ko-KR') + '원';
 }
 
-export function MenuList({ menus }: Props) {
+function MenuListComponent({ menus }: Props) {
+  // 훅은 early return 이전에 호출 (rules-of-hooks)
+  const sorted = useMemo(
+    () => [...menus].sort((a, b) => Number(b.isSignature) - Number(a.isSignature)),
+    [menus],
+  );
+
   if (menus.length === 0) {
     return (
       <div className="space-y-3">
@@ -18,9 +25,6 @@ export function MenuList({ menus }: Props) {
       </div>
     );
   }
-
-  // 추천 메뉴 먼저
-  const sorted = [...menus].sort((a, b) => Number(b.isSignature) - Number(a.isSignature));
 
   return (
     <div className="space-y-3">
@@ -66,3 +70,5 @@ export function MenuList({ menus }: Props) {
     </div>
   );
 }
+
+export const MenuList = memo(MenuListComponent);

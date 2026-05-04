@@ -1,5 +1,41 @@
 export type Zone = 'KWANGWOON_STATION' | 'FRONT_GATE' | 'BACK_GATE';
 
+export type College =
+  | 'AI_CONVERGENCE'
+  | 'ENGINEERING'
+  | 'NATURAL_SCIENCE'
+  | 'BUSINESS'
+  | 'ELECTRONICS_INFO'
+  | 'HUMANITIES_SOCIAL'
+  | 'POLICY_LAW';
+
+// 단과대학 표시명 (UI 노출용). 백엔드 enum 키 ↔ 한글명 매핑.
+export const COLLEGE_LABELS: Record<College, string> = {
+  AI_CONVERGENCE: '인공지능융합대학',
+  ENGINEERING: '공과대학',
+  NATURAL_SCIENCE: '자연과학대학',
+  BUSINESS: '경영대학',
+  ELECTRONICS_INFO: '전자정보공과대학',
+  HUMANITIES_SOCIAL: '인문사회과학대학',
+  POLICY_LAW: '정책법학대학',
+};
+
+export const COLLEGE_VALUES: College[] = [
+  'AI_CONVERGENCE',
+  'ENGINEERING',
+  'NATURAL_SCIENCE',
+  'BUSINESS',
+  'ELECTRONICS_INFO',
+  'HUMANITIES_SOCIAL',
+  'POLICY_LAW',
+];
+
+export interface RestaurantPartnership {
+  id: string;
+  college: College;
+  instagramUrl: string;
+}
+
 export interface BusinessHours {
   open?: string;
   close?: string;
@@ -26,7 +62,7 @@ export interface Restaurant {
   phone?: string | null;
   businessHours: BusinessHoursMap;
   isPartner: boolean;
-  partnerInfo?: Record<string, unknown> | null;
+  partnerships?: RestaurantPartnership[];
   createdAt: string;
   updatedAt: string;
 }
@@ -41,6 +77,12 @@ export interface RestaurantWithRelations extends Restaurant {
   isOpen: boolean;
   categories: import('./category').Category[];
   menus: import('./menu').Menu[];
+  partnerships: RestaurantPartnership[];
+}
+
+export interface PartnershipInput {
+  college: College;
+  instagramUrl: string;
 }
 
 export interface CreateRestaurantRequest {
@@ -52,7 +94,7 @@ export interface CreateRestaurantRequest {
   phone?: string;
   businessHours: BusinessHoursMap;
   isPartner?: boolean;
-  partnerInfo?: Record<string, unknown>;
+  partnerships?: PartnershipInput[];
   categoryIds?: string[];
 }
 

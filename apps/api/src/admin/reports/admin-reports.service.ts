@@ -6,6 +6,7 @@ import {
 import { Prisma, ReportStatus, ReportType, Zone } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+
 import { ApproveReportDto } from './dto/approve-report.dto';
 import { QueryAdminReportsDto } from './dto/query-admin-reports.dto';
 import { RejectReportDto } from './dto/reject-report.dto';
@@ -89,7 +90,7 @@ export class AdminReportsService {
     }
 
     const dataToApply = (dto.editedData ??
-      (report.suggestedData as Prisma.JsonObject)) as Record<string, unknown>;
+      (report.suggestedData as Prisma.JsonObject));
 
     return this.prisma.$transaction(async (tx) => {
       if (dto.applyNow) {
@@ -184,7 +185,6 @@ export class AdminReportsService {
       latitude: number;
       longitude: number;
       isPartner: boolean;
-      partnerInfo: Prisma.JsonValue;
     } | null;
     menu: {
       name: string;
@@ -205,7 +205,6 @@ export class AdminReportsService {
           latitude: report.restaurant.latitude,
           longitude: report.restaurant.longitude,
           isPartner: report.restaurant.isPartner,
-          partnerInfo: report.restaurant.partnerInfo,
         };
       }
       case ReportType.MENU_CHANGE: {
@@ -263,7 +262,7 @@ export class AdminReportsService {
     const updateData: Prisma.RestaurantUpdateInput = {};
     if (typeof data.name === 'string') updateData.name = data.name;
     if (typeof data.phone === 'string' || data.phone === null) {
-      updateData.phone = data.phone as string | null;
+      updateData.phone = data.phone;
     }
     if (typeof data.address === 'string') updateData.address = data.address;
     if (data.businessHours && typeof data.businessHours === 'object') {
@@ -272,9 +271,8 @@ export class AdminReportsService {
     if (typeof data.latitude === 'number') updateData.latitude = data.latitude;
     if (typeof data.longitude === 'number') updateData.longitude = data.longitude;
     if (typeof data.isPartner === 'boolean') updateData.isPartner = data.isPartner;
-    if (data.partnerInfo && typeof data.partnerInfo === 'object') {
-      updateData.partnerInfo = data.partnerInfo as Prisma.InputJsonValue;
-    }
+    // partnerInfo 필드는 partnerships 모델로 대체되어 더 이상 식당 본체에 없음.
+    // 사용자 제보로 제휴 정보 변경 기능은 별도 워크플로 (관리자 폼) 로 처리.
 
     return tx.restaurant.update({
       where: { id: restaurantId },

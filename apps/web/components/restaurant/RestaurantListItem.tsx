@@ -1,7 +1,7 @@
+import type { RestaurantListItem as RestaurantListItemType } from '@pangchelin/types';
 import Image from 'next/image';
 import Link from 'next/link';
-
-import type { RestaurantListItem } from '@pangchelin/types';
+import { memo } from 'react';
 
 const ZONE_LABEL: Record<string, string> = {
   FRONT_GATE: '정문',
@@ -10,10 +10,10 @@ const ZONE_LABEL: Record<string, string> = {
 };
 
 interface Props {
-  restaurant: RestaurantListItem;
+  restaurant: RestaurantListItemType;
 }
 
-export function RestaurantListItem({ restaurant }: Props) {
+function RestaurantListItemComponent({ restaurant }: Props) {
   const { id, name, zone, isOpen, isPartner, categories, featuredMenu } = restaurant;
   const category = categories[0];
 
@@ -81,3 +81,6 @@ export function RestaurantListItem({ restaurant }: Props) {
     </Link>
   );
 }
+
+// 필터 변경/시트 드래그 등으로 부모가 자주 리렌더되어도 동일 식당은 재렌더 안 되도록 메모화
+export const RestaurantListItem = memo(RestaurantListItemComponent);

@@ -1,19 +1,23 @@
 'use client';
 
 import { PanelLeftOpen, X } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { FilterChips } from '@/components/filters/FilterChips';
+import { ZoneTabs } from '@/components/filters/ZoneTabs';
 import { BottomSheet } from '@/components/layout/BottomSheet';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { KakaoMap, type KakaoMapHandle } from '@/components/map/KakaoMap';
 import { MapFloatingButtons } from '@/components/map/MapFloatingButtons';
 import { RestaurantMarker } from '@/components/map/RestaurantMarker';
-import { FilterChips } from '@/components/filters/FilterChips';
-import { ZoneTabs } from '@/components/filters/ZoneTabs';
 import { BottomSheetContent } from '@/components/restaurant/BottomSheetContent';
 import { useRestaurants } from '@/hooks/queries/useRestaurants';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import {
+  MARKER_CLUSTER_THRESHOLD,
+  useMarkerClusterer,
+} from '@/hooks/useMarkerClusterer';
 import { useFilterStore } from '@/lib/stores/filterStore';
 import { useSheetStore } from '@/lib/stores/sheetStore';
 
@@ -67,12 +71,28 @@ export default function HomePage() {
   }, [locate, lat, lng]);
 
   // 선택된 식당을 리스트 맨 앞으로
-  const orderedRestaurants = selectedId
-    ? [
-        ...restaurants.filter((r) => r.id === selectedId),
-        ...restaurants.filter((r) => r.id !== selectedId),
-      ]
-    : restaurants;
+  const orderedRestaurants = useMemo(
+    () =>
+      selectedId
+        ? [
+            ...restaurants.filter((r) => r.id === selectedId),
+            ...restaurants.filter((r) => r.id !== selectedId),
+          ]
+        : restaurants,
+    [restaurants, selectedId],
+  );
+
+  // 데이터가 적을 땐 CustomOverlay(개성 있는 핀) 만, 임계치 넘으면 클러스터러로 전환
+  const useClusterer = restaurants.length >= MARKER_CLUSTER_THRESHOLD;
+  const clusterMarkers = useMemo(
+    () =>
+      restaurants.map((r) => ({ id: r.id, lat: r.latitude, lng: r.longitude })),
+    [restaurants],
+  );
+  useMarkerClusterer(map, clusterMarkers, {
+    enabled: useClusterer,
+    onMarkerClick: handleMarkerClick,
+  });
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -93,6 +113,7 @@ export default function HomePage() {
         />
 
         {map &&
+          !useClusterer &&
           restaurants.map((r) => (
             <RestaurantMarker
               key={r.id}

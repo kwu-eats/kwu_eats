@@ -1,3 +1,4 @@
+import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -25,6 +26,7 @@ import { UploadModule } from './upload/upload.module';
       },
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    CacheModule.register({ isGlobal: true, ttl: 5 * 60 * 1000, max: 100 }),
     PrismaModule,
     RestaurantsModule,
     MenusModule,
