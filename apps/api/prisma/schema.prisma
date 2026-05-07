@@ -43,6 +43,12 @@ enum College {
   POLICY_LAW
 }
 
+enum NoticeCategory {
+  ANNOUNCEMENT
+  UPDATE
+  EVENT
+}
+
 model Restaurant {
   id                   String                  @id @default(cuid())
   name                 String
@@ -147,6 +153,24 @@ model Admin {
   name            String
   role            AdminRole @default(ADMIN)
   reviewedReports Report[] @relation("ReviewedReports")
+  notices         Notice[] @relation("NoticeAuthor")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model Notice {
+  id          String         @id @default(cuid())
+  title       String
+  content     String         @db.Text
+  category    NoticeCategory @default(ANNOUNCEMENT)
+  isPinned    Boolean        @default(false)
+  publishedAt DateTime       @default(now())
+  authorId    String?
+  author      Admin?         @relation("NoticeAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([publishedAt])
+  @@index([category])
+  @@index([isPinned, publishedAt])
 }

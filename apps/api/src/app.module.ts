@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { CategoriesModule } from './categories/categories.module';
 import { envValidationSchema } from './config/env.validation';
 import { MenusModule } from './menus/menus.module';
+import { NoticesModule } from './notices/notices.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ReportsModule } from './reports/reports.module';
 import { RestaurantsModule } from './restaurants/restaurants.module';
@@ -35,6 +36,7 @@ import { UploadModule } from './upload/upload.module';
     AdminModule,
     AuthModule,
     UploadModule,
+    NoticesModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
