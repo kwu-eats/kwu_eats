@@ -2,21 +2,25 @@
 
 import { SlidersHorizontal } from 'lucide-react';
 
+import { useCategories } from '@/hooks/queries/useCategories';
 import { useFilterStore } from '@/lib/stores/filterStore';
+
+const ZONE_LABEL: Record<string, string> = {
+  FRONT_GATE: '정문',
+  BACK_GATE: '후문',
+  KWANGWOON_STATION: '광운대역',
+  UICHEON: '우이천',
+};
 
 interface Props {
   onClick: () => void;
 }
 
 export function FilterButton({ onClick }: Props) {
-  const { zone, categoryId, isOpen, maxPrice } = useFilterStore();
+  const { zones, categoryIds, isOpen, maxPrice } = useFilterStore();
 
-  let count = 0;
-  if (zone) count += 1;
-  if (categoryId) count += 1;
-  if (isOpen) count += 1;
-  if (maxPrice) count += 1;
-
+  const count =
+    zones.length + categoryIds.length + (isOpen ? 1 : 0) + (maxPrice ? 1 : 0);
   const isActive = count > 0;
 
   return (

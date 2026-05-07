@@ -81,10 +81,12 @@ export class RestaurantsService {
   async findAll(query: QueryRestaurantDto) {
     const where: Prisma.RestaurantWhereInput = {};
 
-    if (query.zone) where.zone = query.zone;
+    if (query.zones?.length) where.zone = { in: query.zones };
     if (query.isPartner !== undefined) where.isPartner = query.isPartner;
-    if (query.categoryId) {
-      where.categories = { some: { categoryId: query.categoryId } };
+    if (query.categoryIds?.length) {
+      where.categories = {
+        some: { categoryId: { in: query.categoryIds } },
+      };
     }
     if (query.maxPrice !== undefined) {
       where.menus = { some: { price: { lte: query.maxPrice } } };

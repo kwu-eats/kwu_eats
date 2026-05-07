@@ -6,7 +6,7 @@ import { X } from 'lucide-react';
 import { useCategories } from '@/hooks/queries/useCategories';
 import { useFilterStore, type Zone } from '@/lib/stores/filterStore';
 
-const ZONE_OPTIONS: Array<{ value: NonNullable<Zone>; label: string }> = [
+const ZONE_OPTIONS: Array<{ value: Zone; label: string }> = [
   { value: 'FRONT_GATE', label: '정문' },
   { value: 'BACK_GATE', label: '후문' },
   { value: 'KWANGWOON_STATION', label: '광운대역' },
@@ -24,6 +24,36 @@ const chipBase =
 const chipActive = 'bg-primary-500 text-white border-primary-500';
 const chipIdle = 'bg-surface text-ink-body border-border';
 
+interface SectionHeaderProps {
+  title: string;
+  count?: number;
+  active?: boolean;
+  onReset: () => void;
+}
+
+function SectionHeader({ title, count, active, onReset }: SectionHeaderProps) {
+  const isActive = count !== undefined ? count > 0 : !!active;
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <h3 className="text-sm font-semibold text-ink-primary">
+        {title}
+        {count !== undefined && count > 0 && (
+          <span className="ml-1.5 text-primary-500">({count})</span>
+        )}
+      </h3>
+      {isActive && (
+        <button
+          type="button"
+          onClick={onReset}
+          className="-mr-2 flex h-8 min-h-0 min-w-0 items-center px-2 text-xs font-medium text-ink-muted"
+        >
+          초기화
+        </button>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -31,12 +61,14 @@ interface Props {
 
 export function FilterSheet({ open, onClose }: Props) {
   const {
-    zone,
-    categoryId,
+    zones,
+    categoryIds,
     isOpen,
     maxPrice,
-    setZone,
-    setCategoryId,
+    toggleZone,
+    clearZones,
+    toggleCategoryId,
+    clearCategoryIds,
     setIsOpen,
     setMaxPrice,
     reset,
@@ -81,23 +113,18 @@ export function FilterSheet({ open, onClose }: Props) {
 
             <div className="flex-1 space-y-6 overflow-y-auto px-5 py-4">
               <section>
-                <h3 className="mb-3 text-sm font-semibold text-ink-primary">
-                  구역
-                </h3>
+                <SectionHeader
+                  title="구역"
+                  count={zones.length}
+                  onReset={clearZones}
+                />
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setZone(null)}
-                    className={`${chipBase} ${!zone ? chipActive : chipIdle}`}
-                  >
-                    전체
-                  </button>
                   {ZONE_OPTIONS.map(({ value, label }) => (
                     <button
                       key={value}
                       type="button"
-                      onClick={() => setZone(zone === value ? null : value)}
-                      className={`${chipBase} ${zone === value ? chipActive : chipIdle}`}
+                      onClick={() => toggleZone(value)}
+                      className={`${chipBase} ${zones.includes(value) ? chipActive : chipIdle}`}
                     >
                       {label}
                     </button>
@@ -119,25 +146,18 @@ export function FilterSheet({ open, onClose }: Props) {
               </section>
 
               <section>
-                <h3 className="mb-3 text-sm font-semibold text-ink-primary">
-                  카테고리
-                </h3>
+                <SectionHeader
+                  title="카테고리"
+                  count={categoryIds.length}
+                  onReset={clearCategoryIds}
+                />
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCategoryId(null)}
-                    className={`${chipBase} ${!categoryId ? chipActive : chipIdle}`}
-                  >
-                    전체
-                  </button>
                   {categories.map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
-                      onClick={() =>
-                        setCategoryId(categoryId === cat.id ? null : cat.id)
-                      }
-                      className={`${chipBase} ${categoryId === cat.id ? chipActive : chipIdle}`}
+                      onClick={() => toggleCategoryId(cat.id)}
+                      className={`${chipBase} ${categoryIds.includes(cat.id) ? chipActive : chipIdle}`}
                     >
                       {cat.name}
                     </button>
@@ -146,17 +166,12 @@ export function FilterSheet({ open, onClose }: Props) {
               </section>
 
               <section>
-                <h3 className="mb-3 text-sm font-semibold text-ink-primary">
-                  예산
-                </h3>
+                <SectionHeader
+                  title="예산"
+                  active={maxPrice !== null}
+                  onReset={() => setMaxPrice(null)}
+                />
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setMaxPrice(null)}
-                    className={`${chipBase} ${!maxPrice ? chipActive : chipIdle}`}
-                  >
-                    제한 없음
-                  </button>
                   {BUDGET_OPTIONS.map((b) => (
                     <button
                       key={b}

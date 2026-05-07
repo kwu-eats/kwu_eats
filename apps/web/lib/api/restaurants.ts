@@ -11,7 +11,14 @@ import { apiFetch } from './client';
 function toQueryString(params: Record<string, unknown>): string {
   const q = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null) q.set(key, String(value));
+    if (value === undefined || value === null) continue;
+    if (Array.isArray(value)) {
+      for (const v of value) {
+        if (v !== undefined && v !== null) q.append(key, String(v));
+      }
+    } else {
+      q.set(key, String(value));
+    }
   }
   const s = q.toString();
   return s ? `?${s}` : '';

@@ -30,14 +30,14 @@ export default function HomePage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const { zone, categoryId, maxPrice, isOpen: isOpenFilter } = useFilterStore();
+  const { zones, categoryIds, maxPrice, isOpen: isOpenFilter } = useFilterStore();
   const { setSnap } = useSheetStore();
   const { lat, lng, isLocating, locate } = useGeolocation();
 
   const filters = useDebounce(
     {
-      zone: zone ?? undefined,
-      categoryId: categoryId ?? undefined,
+      zones: zones.length ? zones : undefined,
+      categoryIds: categoryIds.length ? categoryIds : undefined,
       maxPrice: maxPrice ?? undefined,
       isOpen: isOpenFilter || undefined,
     },
