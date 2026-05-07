@@ -6,6 +6,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { FilterButton } from '@/components/filters/FilterButton';
 import { FilterSheet } from '@/components/filters/FilterSheet';
 import { BottomSheet } from '@/components/layout/BottomSheet';
+import { SearchSheet } from '@/components/search/SearchSheet';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { KakaoMap, type KakaoMapHandle } from '@/components/map/KakaoMap';
 import { MapFloatingButtons } from '@/components/map/MapFloatingButtons';
@@ -27,6 +28,7 @@ export default function HomePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const { zone, categoryId, maxPrice, isOpen: isOpenFilter } = useFilterStore();
   const { setSnap } = useSheetStore();
@@ -127,13 +129,14 @@ export default function HomePage() {
           <FilterButton onClick={() => setFilterOpen(true)} />
           <MapFloatingButtons
             onLocate={handleLocate}
-            onSearch={() => setSnap('full')}
+            onSearch={() => setSearchOpen(true)}
             isLocating={isLocating}
           />
         </div>
       </div>
 
       <FilterSheet open={filterOpen} onClose={() => setFilterOpen(false)} />
+      <SearchSheet open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* 모바일 바텀 시트 */}
       <div className="lg:hidden">
