@@ -22,11 +22,28 @@ async function main() {
   await prisma.restaurant.deleteMany();
   await prisma.admin.deleteMany();
 
-  const passwordHash = await bcrypt.hash('pangchelin-admin-2026', 10);
+  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? 'admin@pangchelin.dev';
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+  if (!adminPassword) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'SEED_ADMIN_PASSWORD 환경변수가 필요해요 (운영 환경에서는 필수)',
+      );
+    }
+    console.warn(
+      '⚠️  SEED_ADMIN_PASSWORD 미설정 — 개발용 기본값을 사용합니다',
+    );
+  }
+
+  const passwordHash = await bcrypt.hash(
+    adminPassword ?? 'pangchelin-admin-2026',
+    10,
+  );
 
   const admin = await prisma.admin.create({
     data: {
-      email: 'admin@pangchelin.dev',
+      email: adminEmail,
       passwordHash,
       name: '팡슐랭 관리자',
     },
