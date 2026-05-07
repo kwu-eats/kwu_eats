@@ -7,6 +7,7 @@ const ZONES: Array<{ label: string; value: Zone }> = [
   { label: '정문', value: 'FRONT_GATE' },
   { label: '후문', value: 'BACK_GATE' },
   { label: '광운대역', value: 'KWANGWOON_STATION' },
+  { label: '우이천', value: 'UICHEON' },
 ];
 
 export function ZoneTabs() {

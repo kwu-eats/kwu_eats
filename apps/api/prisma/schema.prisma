@@ -11,6 +11,7 @@ enum Zone {
   KWANGWOON_STATION
   FRONT_GATE
   BACK_GATE
+  UICHEON
 }
 
 enum ReportType {

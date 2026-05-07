@@ -5,6 +5,7 @@ const ZONE_LABEL: Record<string, string> = {
   KWANGWOON_STATION: '광운대역',
   FRONT_GATE: '정문',
   BACK_GATE: '후문',
+  UICHEON: '우이천',
 };
 
 interface Props {

@@ -31,6 +31,7 @@ const ZONE_OPTIONS = [
   { value: 'FRONT_GATE', label: '정문' },
   { value: 'BACK_GATE', label: '후문' },
   { value: 'KWANGWOON_STATION', label: '광운대역' },
+  { value: 'UICHEON', label: '우이천' },
 ];
 
 const dayHoursSchema = z.object({
@@ -65,7 +66,7 @@ const partnershipRowSchema = z.object({
 
 const restaurantSchema = z.object({
   name: z.string().min(1, '식당명을 입력해주세요'),
-  zone: z.enum(['KWANGWOON_STATION', 'FRONT_GATE', 'BACK_GATE']),
+  zone: z.enum(['KWANGWOON_STATION', 'FRONT_GATE', 'BACK_GATE', 'UICHEON']),
   address: z.string().min(1, '주소를 입력해주세요'),
   phone: z.string().optional(),
   latitude: z.number({ invalid_type_error: '지도에서 위치를 선택해주세요' }),

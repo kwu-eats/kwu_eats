@@ -1,4 +1,4 @@
-export type Zone = 'KWANGWOON_STATION' | 'FRONT_GATE' | 'BACK_GATE';
+export type Zone = 'KWANGWOON_STATION' | 'FRONT_GATE' | 'BACK_GATE' | 'UICHEON';
 
 export type College =
   | 'AI_CONVERGENCE'

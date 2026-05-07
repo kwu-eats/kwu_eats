@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type Zone = 'KWANGWOON_STATION' | 'FRONT_GATE' | 'BACK_GATE' | null;
+export type Zone = 'KWANGWOON_STATION' | 'FRONT_GATE' | 'BACK_GATE' | 'UICHEON' | null;
 
 interface FilterStore {
   zone: Zone;
