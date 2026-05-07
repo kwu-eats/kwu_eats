@@ -3,6 +3,7 @@
 import { PanelLeftOpen, X } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { ActiveFilterBar } from '@/components/filters/ActiveFilterBar';
 import { FilterButton } from '@/components/filters/FilterButton';
 import { FilterSheet } from '@/components/filters/FilterSheet';
 import { BottomSheet } from '@/components/layout/BottomSheet';
@@ -141,6 +142,7 @@ export default function HomePage() {
       {/* 모바일 바텀 시트 */}
       <div className="lg:hidden">
         <BottomSheet>
+          <ActiveFilterBar variant="inline" />
           <BottomSheetContent
             restaurants={orderedRestaurants}
             isLoading={isLoading}
@@ -167,6 +169,7 @@ export default function HomePage() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto">
+            <ActiveFilterBar variant="inline" />
             <BottomSheetContent
               restaurants={orderedRestaurants}
               isLoading={isLoading}
