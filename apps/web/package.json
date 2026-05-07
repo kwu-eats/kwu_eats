@@ -23,12 +23,14 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.73.1",
+    "react-markdown": "^10.1.0",
     "sonner": "^1.5.0",
     "zod": "^3.23.8",
     "zustand": "^4.5.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",
+    "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query-devtools": "^5.51.1",
     "@types/node": "^20.14.12",
     "@types/react": "^18.3.3",

@@ -6,6 +6,7 @@ import {
 } from '@pangchelin/types';
 import { ChevronLeft, Megaphone, Pin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
 
 import { useNotice } from '@/hooks/queries/useNotices';
 
@@ -93,9 +94,8 @@ export default function NoticeDetailPage({ params }: Props) {
 
           <hr className="my-5 border-border" />
 
-          {/* MVP: Markdown 렌더 라이브러리 미사용. whitespace-pre-wrap 으로 줄바꿈 보존. */}
-          <div className="text-sm leading-7 text-ink-body whitespace-pre-wrap break-words">
-            {notice.content}
+          <div className="prose prose-sm prose-ink max-w-none break-words">
+            <ReactMarkdown>{notice.content}</ReactMarkdown>
           </div>
         </article>
       )}

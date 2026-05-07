@@ -91,13 +91,15 @@ export function NoticeForm({
       <div>
         <label className="mb-1 block text-xs font-medium text-ink-muted">
           내용 <span className="text-red-400">*</span>{' '}
-          <span className="text-ink-subtle">(Markdown 지원 예정 — 지금은 줄바꿈 보존)</span>
+          <span className="text-ink-subtle">
+            (Markdown 지원 — # 제목, **굵게**, - 리스트, [링크](url))
+          </span>
         </label>
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={12}
-          placeholder="공지 내용을 입력하세요"
+          placeholder={`예:\n## 5월 신메뉴\n- 후문로스터리 (카페)\n- 우이천김밥 (분식)\n\n자세한 내용은 [이곳](https://example.com)에서 확인하세요.`}
           className="w-full rounded-xl border border-border bg-canvas px-3 py-3 text-base text-ink-primary placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-primary-400"
           style={{ minHeight: '12rem' }}
         />
