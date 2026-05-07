@@ -1,4 +1,4 @@
-export type Zone = 'KWANGWOON_STATION' | 'FRONT_GATE' | 'BACK_GATE';
+export type Zone = 'KWANGWOON_STATION' | 'FRONT_GATE' | 'BACK_GATE' | 'UICHEON';
 
 export type College =
   | 'AI_CONVERGENCE'
@@ -101,8 +101,8 @@ export interface CreateRestaurantRequest {
 export type UpdateRestaurantRequest = Partial<CreateRestaurantRequest>;
 
 export interface RestaurantQueryParams {
-  zone?: Zone;
-  categoryId?: string;
+  zones?: Zone[];
+  categoryIds?: string[];
   maxPrice?: number;
   isPartner?: boolean;
   isOpen?: boolean;

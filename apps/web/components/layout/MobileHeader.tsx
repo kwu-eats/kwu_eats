@@ -1,23 +1,27 @@
 'use client';
 
-import { Menu } from 'lucide-react';
+import { Megaphone, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { useUnreadNoticeCount } from '@/hooks/queries/useUnreadNoticeCount';
+
 export function MobileHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const unread = useUnreadNoticeCount();
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-surface px-4 pt-safe shadow-card">
-        <Link href="/" className="flex items-center gap-2 min-h-touch min-w-0">
-          <span
-            className="text-xl font-display text-primary-500 leading-none"
-            aria-label="팡슐랭 홈"
-          >
+      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between gap-3 px-4 pb-2 pt-[max(env(safe-area-inset-top),0.75rem)]">
+        <Link
+          href="/"
+          aria-label="팡슐랭 홈"
+          className="flex h-11 min-w-0 items-center gap-2 rounded-full bg-surface/85 px-4 shadow-md backdrop-blur-md"
+        >
+          <span className="font-display text-lg leading-none text-primary-500">
             팡슐랭
           </span>
-          <span className="text-xs font-body text-ink-muted mt-0.5 hidden xs:block">
+          <span className="hidden font-body text-xs text-ink-muted xs:block">
             광운대 맛집 가이드
           </span>
         </Link>
@@ -25,11 +29,17 @@ export function MobileHeader() {
         <button
           type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
-          className="flex items-center justify-center min-h-touch min-w-touch rounded-md text-ink-body"
-          aria-label="메뉴 열기"
+          className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-surface/85 text-ink-body shadow-md backdrop-blur-md"
+          aria-label={unread > 0 ? `메뉴 (새 공지 ${unread}개)` : '메뉴 열기'}
           aria-expanded={menuOpen}
         >
-          <Menu size={22} strokeWidth={1.75} />
+          <Megaphone size={20} strokeWidth={1.75} />
+          {unread > 0 && (
+            <span
+              className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500"
+              aria-hidden="true"
+            />
+          )}
         </button>
       </header>
 
@@ -41,13 +51,27 @@ export function MobileHeader() {
             onClick={() => setMenuOpen(false)}
             aria-hidden="true"
           />
-          <nav className="fixed right-4 top-14 z-[46] min-w-[160px] rounded-lg bg-surface shadow-lg border border-border py-1">
+          <nav className="fixed right-4 top-[calc(max(env(safe-area-inset-top),0.75rem)+3.5rem)] z-[46] min-w-[180px] rounded-lg border border-border bg-surface py-1 shadow-lg">
             <Link
-              href="/report"
-              className="flex items-center px-4 py-3 text-sm font-body text-ink-body min-h-touch"
+              href="/notice"
+              className="flex min-h-touch items-center gap-3 px-4 py-3 text-sm font-body text-ink-body"
               onClick={() => setMenuOpen(false)}
             >
-              정보 제보하기
+              <Megaphone size={16} strokeWidth={1.75} className="text-ink-muted" />
+              <span className="flex-1">공지사항</span>
+              {unread > 0 && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary-500 px-1.5 text-[11px] font-semibold text-white">
+                  {unread > 99 ? '99+' : unread}
+                </span>
+              )}
+            </Link>
+            <Link
+              href="/report"
+              className="flex min-h-touch items-center gap-3 px-4 py-3 text-sm font-body text-ink-body"
+              onClick={() => setMenuOpen(false)}
+            >
+              <MessageSquare size={16} strokeWidth={1.75} className="text-ink-muted" />
+              <span>정보 제보하기</span>
             </Link>
           </nav>
         </>

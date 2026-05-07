@@ -3,14 +3,16 @@
 import { PanelLeftOpen, X } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { FilterChips } from '@/components/filters/FilterChips';
-import { ZoneTabs } from '@/components/filters/ZoneTabs';
+import { ActiveFilterBar } from '@/components/filters/ActiveFilterBar';
+import { FilterButton } from '@/components/filters/FilterButton';
+import { FilterSheet } from '@/components/filters/FilterSheet';
 import { BottomSheet } from '@/components/layout/BottomSheet';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { KakaoMap, type KakaoMapHandle } from '@/components/map/KakaoMap';
 import { MapFloatingButtons } from '@/components/map/MapFloatingButtons';
 import { RestaurantMarker } from '@/components/map/RestaurantMarker';
 import { BottomSheetContent } from '@/components/restaurant/BottomSheetContent';
+import { SearchSheet } from '@/components/search/SearchSheet';
 import { useRestaurants } from '@/hooks/queries/useRestaurants';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -26,15 +28,17 @@ export default function HomePage() {
   const [map, setMap] = useState<kakao.maps.Map | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  const { zone, categoryId, maxPrice, isOpen: isOpenFilter } = useFilterStore();
+  const { zones, categoryIds, maxPrice, isOpen: isOpenFilter } = useFilterStore();
   const { setSnap } = useSheetStore();
   const { lat, lng, isLocating, locate } = useGeolocation();
 
   const filters = useDebounce(
     {
-      zone: zone ?? undefined,
-      categoryId: categoryId ?? undefined,
+      zones: zones.length ? zones : undefined,
+      categoryIds: categoryIds.length ? categoryIds : undefined,
       maxPrice: maxPrice ?? undefined,
       isOpen: isOpenFilter || undefined,
     },
@@ -98,13 +102,7 @@ export default function HomePage() {
     <div className="flex h-dvh flex-col overflow-hidden">
       <MobileHeader />
 
-      {/* 필터 영역 */}
-      <div className="z-10 flex-shrink-0 bg-canvas shadow-card">
-        <ZoneTabs />
-        <FilterChips />
-      </div>
-
-      {/* 지도 + FAB + 마커 */}
+      {/* 지도 + 플로팅 필터 버튼 + FAB + 마커 */}
       <div className="relative flex-1 overflow-hidden">
         <KakaoMap
           ref={mapRef}
@@ -127,19 +125,24 @@ export default function HomePage() {
             />
           ))}
 
-        {/* FAB: 컨테이너는 pointer-events:none, 버튼은 pointer-events:auto */}
-        <div className="pointer-events-none absolute bottom-36 right-4 z-20">
+        {/* FAB: 필터 / 현재 위치 / 검색 — 우측 하단 세로 정렬 */}
+        <div className="pointer-events-none absolute bottom-36 right-4 z-20 flex flex-col items-end gap-3">
+          <FilterButton onClick={() => setFilterOpen(true)} />
           <MapFloatingButtons
             onLocate={handleLocate}
-            onSearch={() => setSnap('full')}
+            onSearch={() => setSearchOpen(true)}
             isLocating={isLocating}
           />
         </div>
       </div>
 
+      <FilterSheet open={filterOpen} onClose={() => setFilterOpen(false)} />
+      <SearchSheet open={searchOpen} onClose={() => setSearchOpen(false)} />
+
       {/* 모바일 바텀 시트 */}
       <div className="lg:hidden">
         <BottomSheet>
+          <ActiveFilterBar variant="inline" />
           <BottomSheetContent
             restaurants={orderedRestaurants}
             isLoading={isLoading}
@@ -166,6 +169,7 @@ export default function HomePage() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto">
+            <ActiveFilterBar variant="inline" />
             <BottomSheetContent
               restaurants={orderedRestaurants}
               isLoading={isLoading}

@@ -377,6 +377,7 @@ export class AdminReportsService {
     if (value === Zone.KWANGWOON_STATION) return Zone.KWANGWOON_STATION;
     if (value === Zone.FRONT_GATE) return Zone.FRONT_GATE;
     if (value === Zone.BACK_GATE) return Zone.BACK_GATE;
+    if (value === Zone.UICHEON) return Zone.UICHEON;
     return Zone.FRONT_GATE;
   }
 }

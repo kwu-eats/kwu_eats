@@ -41,6 +41,18 @@ export async function apiFetch<T>(
   });
 
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      // 동적 import: server bundle 에 authStore(localStorage 의존) 가 들어가지 않도록
+      const { useAuthStore } = await import('../stores/authStore');
+      const hadToken = useAuthStore.getState().token !== null;
+      if (hadToken) {
+        useAuthStore.getState().clearAuth();
+        if (window.location.pathname !== '/admin/login') {
+          window.location.href = '/admin/login';
+        }
+      }
+    }
+
     const body = await res.json().catch(() => ({}));
     throw new ApiError(res.status, body.message ?? '앗, 잠시 후 다시 시도해주세요');
   }

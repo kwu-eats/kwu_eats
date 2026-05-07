@@ -15,7 +15,7 @@ export const ADMIN_CREDENTIALS = {
 export interface SeedRestaurant {
   id: string;
   name: string;
-  zone: 'KWANGWOON_STATION' | 'FRONT_GATE' | 'BACK_GATE';
+  zone: 'KWANGWOON_STATION' | 'FRONT_GATE' | 'BACK_GATE' | 'UICHEON';
 }
 
 export async function getFirstRestaurant(): Promise<SeedRestaurant> {
