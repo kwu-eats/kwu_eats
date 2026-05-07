@@ -1,7 +1,9 @@
 'use client';
 
 import type { RestaurantListItem } from '@pangchelin/types';
+import { RotateCcw } from 'lucide-react';
 
+import { useFilterStore } from '@/lib/stores/filterStore';
 import { useSheetStore } from '@/lib/stores/sheetStore';
 
 import { RestaurantListItem as RestaurantCard } from './RestaurantListItem';
@@ -27,6 +29,9 @@ function SkeletonCard() {
 
 export function BottomSheetContent({ restaurants, isLoading, isError }: Props) {
   const { snap, setSnap } = useSheetStore();
+  const { zones, categoryIds, isOpen, maxPrice, reset } = useFilterStore();
+  const hasActiveFilters =
+    zones.length > 0 || categoryIds.length > 0 || isOpen || maxPrice !== null;
 
   if (isError) {
     return (
@@ -47,6 +52,28 @@ export function BottomSheetContent({ restaurants, isLoading, isError }: Props) {
   }
 
   if (restaurants.length === 0) {
+    if (hasActiveFilters) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 px-6 py-16">
+          <div className="text-center text-ink-muted">
+            <p className="text-sm font-medium text-ink-body">
+              이 조건에 맞는 식당이 없어요
+            </p>
+            <p className="mt-1 text-xs">
+              필터를 줄이거나 다른 조합으로 시도해보세요
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={reset}
+            className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-ink-body"
+          >
+            <RotateCcw size={14} strokeWidth={1.75} />
+            필터 전체 초기화
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center justify-center py-16 text-ink-muted">
         <p className="text-sm">아직 등록된 식당이 없어요</p>
