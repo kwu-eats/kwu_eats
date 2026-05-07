@@ -9,15 +9,16 @@ export function MobileHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-surface px-4 pt-safe shadow-card">
-        <Link href="/" className="flex items-center gap-2 min-h-touch min-w-0">
-          <span
-            className="text-xl font-display text-primary-500 leading-none"
-            aria-label="팡슐랭 홈"
-          >
+      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between gap-3 px-4 pb-2 pt-[max(env(safe-area-inset-top),0.75rem)]">
+        <Link
+          href="/"
+          aria-label="팡슐랭 홈"
+          className="flex h-11 min-w-0 items-center gap-2 rounded-full bg-surface/85 px-4 shadow-md backdrop-blur-md"
+        >
+          <span className="font-display text-lg leading-none text-primary-500">
             팡슐랭
           </span>
-          <span className="text-xs font-body text-ink-muted mt-0.5 hidden xs:block">
+          <span className="hidden font-body text-xs text-ink-muted xs:block">
             광운대 맛집 가이드
           </span>
         </Link>
@@ -25,7 +26,7 @@ export function MobileHeader() {
         <button
           type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
-          className="flex items-center justify-center min-h-touch min-w-touch rounded-md text-ink-body"
+          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-surface/85 text-ink-body shadow-md backdrop-blur-md"
           aria-label="메뉴 열기"
           aria-expanded={menuOpen}
         >
@@ -41,10 +42,10 @@ export function MobileHeader() {
             onClick={() => setMenuOpen(false)}
             aria-hidden="true"
           />
-          <nav className="fixed right-4 top-14 z-[46] min-w-[160px] rounded-lg bg-surface shadow-lg border border-border py-1">
+          <nav className="fixed right-4 top-[calc(max(env(safe-area-inset-top),0.75rem)+3.5rem)] z-[46] min-w-[160px] rounded-lg border border-border bg-surface py-1 shadow-lg">
             <Link
               href="/report"
-              className="flex items-center px-4 py-3 text-sm font-body text-ink-body min-h-touch"
+              className="flex min-h-touch items-center px-4 py-3 text-sm font-body text-ink-body"
               onClick={() => setMenuOpen(false)}
             >
               정보 제보하기

@@ -83,6 +83,7 @@ body {
   color: var(--color-text-primary);
   font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
 }
 
 /* iOS 줌 방지 */
