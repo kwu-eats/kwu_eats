@@ -1,5 +1,5 @@
 import type { RestaurantWithRelations } from '@pangchelin/types';
-import { MapPin, Phone } from 'lucide-react';
+import { Info, MapPin, Phone } from 'lucide-react';
 
 import { formatNextOpen } from '@/lib/formatNextOpen';
 
@@ -15,6 +15,11 @@ interface Props {
 }
 
 export function RestaurantInfo({ restaurant }: Props) {
+  const businessHoursNote =
+    typeof (restaurant.businessHours as { note?: unknown })?.note === 'string'
+      ? ((restaurant.businessHours as { note: string }).note || '').trim()
+      : '';
+
   return (
     <div className="space-y-3">
       {/* 이름 + 배지 */}
@@ -63,6 +68,14 @@ export function RestaurantInfo({ restaurant }: Props) {
           <Phone size={16} strokeWidth={1.75} className="flex-shrink-0" />
           <span>{restaurant.phone}</span>
         </a>
+      )}
+
+      {/* 영업시간 비고 — 격주 휴무 등 정형화 못 한 정보 */}
+      {businessHoursNote && (
+        <div className="flex items-start gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm font-body text-ink-body">
+          <Info size={16} strokeWidth={1.75} className="mt-0.5 flex-shrink-0 text-ink-muted" />
+          <span>{businessHoursNote}</span>
+        </div>
       )}
     </div>
   );

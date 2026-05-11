@@ -38,6 +38,8 @@ const dayHoursSchema = z.object({
   closed: z.boolean().default(false),
   open: z.string().optional(),
   close: z.string().optional(),
+  breakStart: z.string().optional(),
+  breakEnd: z.string().optional(),
 });
 
 const menuRowSchema = z.object({
@@ -75,6 +77,8 @@ const restaurantSchema = z.object({
   businessHours: z.object({
     mon: dayHoursSchema, tue: dayHoursSchema, wed: dayHoursSchema,
     thu: dayHoursSchema, fri: dayHoursSchema, sat: dayHoursSchema, sun: dayHoursSchema,
+    /** 격주 휴무 등 자유 텍스트 비고 */
+    note: z.string().optional(),
   }),
   isPartner: z.boolean().default(false),
   partnerships: z.array(partnershipRowSchema).default([]),
@@ -363,8 +367,10 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
         <div className="space-y-2">
           {DAYS.map(({ key, label }) => {
             const closed = watch(`businessHours.${key}.closed`);
+            const breakStart = watch(`businessHours.${key}.breakStart`);
+            const hasBreak = !!breakStart;
             return (
-              <div key={key} className="flex items-center gap-3">
+              <div key={key} className="flex flex-wrap items-center gap-3">
                 <span className="w-6 shrink-0 text-sm font-medium text-ink-body">{label}</span>
                 <Controller
                   control={control}
@@ -394,12 +400,64 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
                       {...register(`businessHours.${key}.close`)}
                       className="h-8 rounded-lg border border-border bg-muted px-2 text-sm text-ink-body focus:border-primary-500 focus:outline-none"
                     />
+                    {!hasBreak ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValue(`businessHours.${key}.breakStart`, '15:00');
+                          setValue(`businessHours.${key}.breakEnd`, '17:00');
+                        }}
+                        className="text-xs text-primary-500 hover:text-primary-600"
+                      >
+                        + 브레이크
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 rounded-lg bg-muted/60 px-2 py-1 text-xs text-ink-muted">
+                        <span>브레이크</span>
+                        <input
+                          type="time"
+                          {...register(`businessHours.${key}.breakStart`)}
+                          className="h-7 rounded border border-border bg-surface px-1.5 text-xs text-ink-body focus:border-primary-500 focus:outline-none"
+                        />
+                        <span>~</span>
+                        <input
+                          type="time"
+                          {...register(`businessHours.${key}.breakEnd`)}
+                          className="h-7 rounded border border-border bg-surface px-1.5 text-xs text-ink-body focus:border-primary-500 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setValue(`businessHours.${key}.breakStart`, '');
+                            setValue(`businessHours.${key}.breakEnd`, '');
+                          }}
+                          aria-label="브레이크 제거"
+                          className="text-ink-muted hover:text-ink-body"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
                   </>
                 )}
                 {closed && <span className="text-sm text-ink-muted">휴무일</span>}
               </div>
             );
           })}
+        </div>
+
+        {/* 비고 — 격주 휴무 등 정형화하기 어려운 메모 */}
+        <div className="pt-1">
+          <label className={labelClass}>비고 (선택)</label>
+          <input
+            type="text"
+            {...register('businessHours.note')}
+            placeholder="예: 둘째/넷째 토요일 휴무, 사장님 일정에 따라 변동"
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-ink-muted">
+            격주 휴무처럼 위 표로 표현 못 하는 정보는 여기에 자유롭게 적어주세요. 식당 상세 페이지에 그대로 노출됩니다.
+          </p>
         </div>
       </div>
 

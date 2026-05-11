@@ -4,14 +4,27 @@ import type { RestaurantWithRelations } from '@pangchelin/types';
 import type { RestaurantFormValues } from './RestaurantForm';
 
 function defaultDayHours() {
-  return { closed: false, open: '11:00', close: '21:00' };
+  return { closed: false, open: '11:00', close: '21:00', breakStart: '', breakEnd: '' };
 }
 
 export function toFormValues(r: RestaurantWithRelations): RestaurantFormValues {
   const bh = (r.businessHours ?? {}) as Record<
     string,
-    { open?: string; close?: string; closed?: boolean }
+    | { open?: string; close?: string; closed?: boolean; breakStart?: string; breakEnd?: string }
+    | string
+    | undefined
   >;
+  const day = (k: string) => {
+    const d = bh[k];
+    if (!d || typeof d === 'string') return { closed: false, open: '11:00', close: '21:00' };
+    return {
+      closed: d.closed ?? false,
+      open: d.open ?? '11:00',
+      close: d.close ?? '21:00',
+      breakStart: d.breakStart ?? '',
+      breakEnd: d.breakEnd ?? '',
+    };
+  };
   return {
     name: r.name,
     zone: r.zone as RestaurantFormValues['zone'],
@@ -20,13 +33,14 @@ export function toFormValues(r: RestaurantWithRelations): RestaurantFormValues {
     latitude: r.latitude,
     longitude: r.longitude,
     businessHours: {
-      mon: { closed: bh.mon?.closed ?? false, open: bh.mon?.open ?? '11:00', close: bh.mon?.close ?? '21:00' },
-      tue: { closed: bh.tue?.closed ?? false, open: bh.tue?.open ?? '11:00', close: bh.tue?.close ?? '21:00' },
-      wed: { closed: bh.wed?.closed ?? false, open: bh.wed?.open ?? '11:00', close: bh.wed?.close ?? '21:00' },
-      thu: { closed: bh.thu?.closed ?? false, open: bh.thu?.open ?? '11:00', close: bh.thu?.close ?? '21:00' },
-      fri: { closed: bh.fri?.closed ?? false, open: bh.fri?.open ?? '11:00', close: bh.fri?.close ?? '21:00' },
-      sat: { closed: bh.sat?.closed ?? false, open: bh.sat?.open ?? '11:00', close: bh.sat?.close ?? '21:00' },
-      sun: { closed: bh.sun?.closed ?? true, open: bh.sun?.open ?? '11:00', close: bh.sun?.close ?? '21:00' },
+      mon: day('mon'),
+      tue: day('tue'),
+      wed: day('wed'),
+      thu: day('thu'),
+      fri: day('fri'),
+      sat: day('sat'),
+      sun: bh.sun && typeof bh.sun !== 'string' ? day('sun') : { closed: true, open: '11:00', close: '21:00' },
+      note: typeof bh.note === 'string' ? bh.note : '',
     },
     isPartner: r.isPartner,
     partnerships:
@@ -65,7 +79,8 @@ export function defaultFormValues(): RestaurantFormValues {
       thu: defaultDayHours(),
       fri: defaultDayHours(),
       sat: defaultDayHours(),
-      sun: { closed: true, open: '11:00', close: '21:00' },
+      sun: { closed: true, open: '11:00', close: '21:00', breakStart: '', breakEnd: '' },
+      note: '',
     },
     isPartner: false,
     partnerships: [],

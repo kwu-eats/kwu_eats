@@ -43,6 +43,10 @@ export interface BusinessHours {
   open?: string;
   close?: string;
   closed?: boolean;
+  /** 점심 등 브레이크 시작 (HH:MM) */
+  breakStart?: string;
+  /** 점심 등 브레이크 종료 (HH:MM) */
+  breakEnd?: string;
 }
 
 export interface BusinessHoursMap {
@@ -53,6 +57,8 @@ export interface BusinessHoursMap {
   fri?: BusinessHours;
   sat?: BusinessHours;
   sun?: BusinessHours;
+  /** 격주 휴무 등 정형 표현이 어려운 자유 텍스트 비고. 예: "둘째/넷째 토요일 휴무" */
+  note?: string;
 }
 
 export interface Restaurant {
