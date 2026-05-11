@@ -5,6 +5,8 @@ import { X } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect } from 'react';
 
+import { formatNextOpen } from '@/lib/formatNextOpen';
+
 const ZONE_LABEL: Record<string, string> = {
   FRONT_GATE: '정문',
   BACK_GATE: '후문',
@@ -109,7 +111,9 @@ export function ClusterPicker({ open, restaurants, onSelect, onClose }: Props) {
                     <span>{ZONE_LABEL[r.zone] ?? r.zone}</span>
                     <span>·</span>
                     <span className={r.isOpen ? 'text-success' : 'text-ink-muted'}>
-                      {r.isOpen ? '영업중' : '마감'}
+                      {r.isOpen
+                        ? '영업중'
+                        : formatNextOpen(r.nextOpenAt) || '마감'}
                     </span>
                   </div>
                 </div>

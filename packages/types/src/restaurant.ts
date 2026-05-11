@@ -72,12 +72,16 @@ export interface Restaurant {
 
 export interface RestaurantListItem extends Restaurant {
   isOpen: boolean;
+  /** 마감 상태일 때 다음 영업 시작 시각 (ISO datetime, UTC). 영업 중이면 null. */
+  nextOpenAt: string | null;
   categories: import('./category').Category[];
   featuredMenu?: import('./menu').Menu | null;
 }
 
 export interface RestaurantWithRelations extends Restaurant {
   isOpen: boolean;
+  /** 마감 상태일 때 다음 영업 시작 시각 (ISO datetime, UTC). 영업 중이면 null. */
+  nextOpenAt: string | null;
   categories: import('./category').Category[];
   menus: import('./menu').Menu[];
   partnerships: RestaurantPartnership[];

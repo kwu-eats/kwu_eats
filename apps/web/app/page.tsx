@@ -101,6 +101,21 @@ export default function HomePage() {
     }
   }, [locate, lat, lng]);
 
+  // 검색 결과 선택 시: 지도 이동 + 줌인 + 마커 선택 + 바텀시트 half 로 펼침
+  const handleSearchSelect = useCallback(
+    (restaurant: { id: string; latitude: number; longitude: number }) => {
+      mapRef.current?.panTo(restaurant.latitude, restaurant.longitude);
+      // 줌 레벨이 너무 멀면(>=3) 가까이 당겨오기. 이미 가까우면 유지.
+      const currentLevel = mapRef.current?.map?.getLevel();
+      if (currentLevel && currentLevel > 2) {
+        mapRef.current?.setLevel(2);
+      }
+      setSelectedId(restaurant.id);
+      setSnap('half');
+    },
+    [setSnap],
+  );
+
   // 지도 가시 영역 내 식당만 (bounds 가 없으면 fallback 으로 전체)
   const visibleRestaurants = useMemo(() => {
     if (!bounds) return restaurants;
@@ -211,7 +226,11 @@ export default function HomePage() {
       </div>
 
       <FilterSheet open={filterOpen} onClose={() => setFilterOpen(false)} />
-      <SearchSheet open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <SearchSheet
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelect={handleSearchSelect}
+      />
 
       <ClusterPicker
         open={clusterIds !== null}

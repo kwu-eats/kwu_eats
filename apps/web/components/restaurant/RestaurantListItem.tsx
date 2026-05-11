@@ -3,6 +3,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { memo } from 'react';
 
+import { formatNextOpen } from '@/lib/formatNextOpen';
+
 const ZONE_LABEL: Record<string, string> = {
   FRONT_GATE: '정문',
   BACK_GATE: '후문',
@@ -17,8 +19,10 @@ interface Props {
 }
 
 function RestaurantListItemComponent({ restaurant, isSelected = false }: Props) {
-  const { id, name, zone, isOpen, isPartner, categories, featuredMenu } = restaurant;
+  const { id, name, zone, isOpen, isPartner, categories, featuredMenu, nextOpenAt } =
+    restaurant;
   const category = categories[0];
+  const closedLabel = !isOpen ? formatNextOpen(nextOpenAt) || '마감' : null;
 
   return (
     <Link
@@ -64,7 +68,7 @@ function RestaurantListItemComponent({ restaurant, isSelected = false }: Props) 
                 : { background: 'var(--color-closed-bg)', color: 'var(--color-closed)' }
             }
           >
-            {isOpen ? '영업중' : '마감'}
+            {isOpen ? '영업중' : closedLabel}
           </span>
         </div>
 

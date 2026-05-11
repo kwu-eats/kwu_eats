@@ -1,7 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
-import { isRestaurantOpen } from '../common/utils/business-hours.util';
+import {
+  getNextOpenAt,
+  isRestaurantOpen,
+} from '../common/utils/business-hours.util';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateRestaurantDto, PartnershipInputDto } from './dto/create-restaurant.dto';
@@ -98,21 +101,25 @@ export class RestaurantsService {
       orderBy: { name: 'asc' },
     });
 
-    const result = rows.map((r) => ({
-      id: r.id,
-      name: r.name,
-      zone: r.zone,
-      latitude: r.latitude,
-      longitude: r.longitude,
-      address: r.address,
-      phone: r.phone,
-      businessHours: r.businessHours,
-      isPartner: r.isPartner,
-      partnerships: r.partnerships,
-      isOpen: isRestaurantOpen(r.businessHours),
-      categories: r.categories.map((rc) => rc.category),
-      featuredMenu: r.menus[0] ?? null,
-    }));
+    const result = rows.map((r) => {
+      const open = isRestaurantOpen(r.businessHours);
+      return {
+        id: r.id,
+        name: r.name,
+        zone: r.zone,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        address: r.address,
+        phone: r.phone,
+        businessHours: r.businessHours,
+        isPartner: r.isPartner,
+        partnerships: r.partnerships,
+        isOpen: open,
+        nextOpenAt: open ? null : getNextOpenAt(r.businessHours),
+        categories: r.categories.map((rc) => rc.category),
+        featuredMenu: r.menus[0] ?? null,
+      };
+    });
 
     if (query.isOpen !== undefined) {
       return result.filter((r) => r.isOpen === query.isOpen);
@@ -131,9 +138,11 @@ export class RestaurantsService {
       throw new NotFoundException(`식당을 찾을 수 없어요 (id: ${id})`);
     }
 
+    const open = isRestaurantOpen(restaurant.businessHours);
     return {
       ...restaurant,
-      isOpen: isRestaurantOpen(restaurant.businessHours),
+      isOpen: open,
+      nextOpenAt: open ? null : getNextOpenAt(restaurant.businessHours),
       categories: restaurant.categories.map((rc) => rc.category),
     };
   }

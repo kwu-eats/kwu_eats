@@ -1,6 +1,8 @@
 import type { RestaurantWithRelations } from '@pangchelin/types';
 import { MapPin, Phone } from 'lucide-react';
 
+import { formatNextOpen } from '@/lib/formatNextOpen';
+
 const ZONE_LABEL: Record<string, string> = {
   KWANGWOON_STATION: '광운대역',
   FRONT_GATE: '정문',
@@ -33,7 +35,9 @@ export function RestaurantInfo({ restaurant }: Props) {
               : 'bg-muted text-ink-muted',
           ].join(' ')}
         >
-          {restaurant.isOpen ? '영업중' : '오늘은 끝났어요'}
+          {restaurant.isOpen
+            ? '영업중'
+            : `오늘은 끝났어요 · ${formatNextOpen(restaurant.nextOpenAt) || '내일 다시 와주세요'}`}
         </span>
       </div>
 
