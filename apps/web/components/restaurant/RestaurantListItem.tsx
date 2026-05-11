@@ -12,16 +12,22 @@ const ZONE_LABEL: Record<string, string> = {
 
 interface Props {
   restaurant: RestaurantListItemType;
+  /** 지도에서 클릭해 선택된 식당이면 시각적으로 강조 */
+  isSelected?: boolean;
 }
 
-function RestaurantListItemComponent({ restaurant }: Props) {
+function RestaurantListItemComponent({ restaurant, isSelected = false }: Props) {
   const { id, name, zone, isOpen, isPartner, categories, featuredMenu } = restaurant;
   const category = categories[0];
 
   return (
     <Link
       href={`/restaurants/${id}`}
-      className="flex items-center gap-3 px-4 py-3 min-h-[72px] transition-colors active:bg-primary-50"
+      className={
+        isSelected
+          ? 'flex items-center gap-3 px-4 py-3 min-h-[72px] transition-colors bg-primary-50 shadow-[inset_3px_0_0_0_#D85A30]'
+          : 'flex items-center gap-3 px-4 py-3 min-h-[72px] transition-colors active:bg-primary-50'
+      }
     >
       {/* 썸네일 */}
       <div className="relative h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-lg bg-muted">

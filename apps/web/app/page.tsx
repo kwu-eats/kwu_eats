@@ -8,6 +8,7 @@ import { FilterButton } from '@/components/filters/FilterButton';
 import { FilterSheet } from '@/components/filters/FilterSheet';
 import { BottomSheet } from '@/components/layout/BottomSheet';
 import { MobileHeader } from '@/components/layout/MobileHeader';
+import { ClusterPicker } from '@/components/map/ClusterPicker';
 import { KakaoMap, type KakaoMapHandle } from '@/components/map/KakaoMap';
 import { MapFloatingButtons } from '@/components/map/MapFloatingButtons';
 import { RestaurantMarker } from '@/components/map/RestaurantMarker';
@@ -20,8 +21,16 @@ import {
   MARKER_CLUSTER_THRESHOLD,
   useMarkerClusterer,
 } from '@/hooks/useMarkerClusterer';
+import { groupRestaurantsByLocation } from '@/lib/groupRestaurants';
 import { useFilterStore } from '@/lib/stores/filterStore';
 import { useSheetStore } from '@/lib/stores/sheetStore';
+
+interface MapBounds {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+}
 
 export default function HomePage() {
   const mapRef = useRef<KakaoMapHandle>(null);
@@ -30,6 +39,10 @@ export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  // 지도 가시 영역 — idle 이벤트로 갱신해서 패닝 중 리렌더 방지
+  const [bounds, setBounds] = useState<MapBounds | null>(null);
+  // 클러스터 클릭 시 그 안의 식당 id 목록 (null = 팝업 닫힘)
+  const [clusterIds, setClusterIds] = useState<string[] | null>(null);
 
   const { zones, categoryIds, maxPrice, isOpen: isOpenFilter } = useFilterStore();
   const { setSnap } = useSheetStore();
@@ -47,7 +60,7 @@ export default function HomePage() {
 
   const { data: restaurants = [], isLoading, isError } = useRestaurants(filters);
 
-  // 지도 배경 클릭 시 바텀 시트 내리기
+  // 지도 배경 클릭 시 바텀 시트 내리기 + 가시 영역 추적
   const handleMapReady = useCallback(
     (mapInstance: kakao.maps.Map) => {
       setMap(mapInstance);
@@ -55,6 +68,20 @@ export default function HomePage() {
         setSnap('peek');
         setSelectedId(null);
       });
+      const updateBounds = () => {
+        const b = mapInstance.getBounds();
+        const sw = b.getSouthWest();
+        const ne = b.getNorthEast();
+        setBounds({
+          minLat: sw.getLat(),
+          maxLat: ne.getLat(),
+          minLng: sw.getLng(),
+          maxLng: ne.getLng(),
+        });
+      };
+      // 초기값 1회 + 이후 패닝/줌이 멈출 때마다 갱신
+      updateBounds();
+      window.kakao.maps.event.addListener(mapInstance, 'idle', updateBounds);
     },
     [setSnap],
   );
@@ -74,29 +101,62 @@ export default function HomePage() {
     }
   }, [locate, lat, lng]);
 
-  // 선택된 식당을 리스트 맨 앞으로
-  const orderedRestaurants = useMemo(
-    () =>
-      selectedId
-        ? [
-            ...restaurants.filter((r) => r.id === selectedId),
-            ...restaurants.filter((r) => r.id !== selectedId),
-          ]
-        : restaurants,
-    [restaurants, selectedId],
+  // 지도 가시 영역 내 식당만 (bounds 가 없으면 fallback 으로 전체)
+  const visibleRestaurants = useMemo(() => {
+    if (!bounds) return restaurants;
+    return restaurants.filter(
+      (r) =>
+        r.latitude >= bounds.minLat &&
+        r.latitude <= bounds.maxLat &&
+        r.longitude >= bounds.minLng &&
+        r.longitude <= bounds.maxLng,
+    );
+  }, [restaurants, bounds]);
+
+  // 선택된 식당이 가시 영역 밖이어도 맨 앞에 노출 (사용자가 직접 클릭한 의도 존중)
+  const orderedRestaurants = useMemo(() => {
+    if (!selectedId) return visibleRestaurants;
+    const selected = restaurants.find((r) => r.id === selectedId);
+    const rest = visibleRestaurants.filter((r) => r.id !== selectedId);
+    return selected ? [selected, ...rest] : rest;
+  }, [visibleRestaurants, restaurants, selectedId]);
+
+  // 같은 건물(좌표) 식당은 한 마커로 묶기. count===1 은 단일, 2+ 는 건물 마커.
+  const restaurantGroups = useMemo(
+    () => groupRestaurantsByLocation(restaurants),
+    [restaurants],
   );
 
   // 데이터가 적을 땐 CustomOverlay(개성 있는 핀) 만, 임계치 넘으면 클러스터러로 전환
-  const useClusterer = restaurants.length >= MARKER_CLUSTER_THRESHOLD;
+  const useClusterer = restaurantGroups.length >= MARKER_CLUSTER_THRESHOLD;
   const clusterMarkers = useMemo(
     () =>
-      restaurants.map((r) => ({ id: r.id, lat: r.latitude, lng: r.longitude })),
-    [restaurants],
+      restaurantGroups.map((g) => ({
+        id: g.restaurants[0].id,
+        lat: g.lat,
+        lng: g.lng,
+        isOpen: g.restaurants.some((r) => r.isOpen),
+        isPartner: g.restaurants.some((r) => r.isPartner),
+        count: g.restaurants.length,
+        restaurantIds: g.restaurants.map((r) => r.id),
+      })),
+    [restaurantGroups],
   );
   useMarkerClusterer(map, clusterMarkers, {
     enabled: useClusterer,
     onMarkerClick: handleMarkerClick,
+    onClusterClick: (ids) => setClusterIds(ids),
   });
+
+  const clusterRestaurants = useMemo(
+    () =>
+      clusterIds
+        ? clusterIds
+            .map((id) => restaurants.find((r) => r.id === id))
+            .filter((r): r is (typeof restaurants)[number] => Boolean(r))
+        : [],
+    [clusterIds, restaurants],
+  );
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -112,18 +172,32 @@ export default function HomePage() {
 
         {map &&
           !useClusterer &&
-          restaurants.map((r) => (
-            <RestaurantMarker
-              key={r.id}
-              map={map}
-              lat={r.latitude}
-              lng={r.longitude}
-              isOpen={r.isOpen}
-              isPartner={r.isPartner}
-              isSelected={selectedId === r.id}
-              onClick={() => handleMarkerClick(r.id)}
-            />
-          ))}
+          restaurantGroups.map((g) => {
+            const first = g.restaurants[0];
+            const isAnyOpen = g.restaurants.some((r) => r.isOpen);
+            const isAnyPartner = g.restaurants.some((r) => r.isPartner);
+            const isAnySelected = g.restaurants.some(
+              (r) => r.id === selectedId,
+            );
+            return (
+              <RestaurantMarker
+                key={first.id}
+                map={map}
+                lat={g.lat}
+                lng={g.lng}
+                isOpen={isAnyOpen}
+                isPartner={isAnyPartner}
+                isSelected={isAnySelected}
+                onClick={() => {
+                  if (g.restaurants.length === 1) {
+                    handleMarkerClick(first.id);
+                  } else {
+                    setClusterIds(g.restaurants.map((r) => r.id));
+                  }
+                }}
+              />
+            );
+          })}
 
         {/* FAB: 필터 / 현재 위치 / 검색 — 우측 하단 세로 정렬 */}
         <div className="pointer-events-none absolute bottom-36 right-4 z-20 flex flex-col items-end gap-3">
@@ -139,6 +213,16 @@ export default function HomePage() {
       <FilterSheet open={filterOpen} onClose={() => setFilterOpen(false)} />
       <SearchSheet open={searchOpen} onClose={() => setSearchOpen(false)} />
 
+      <ClusterPicker
+        open={clusterIds !== null}
+        restaurants={clusterRestaurants}
+        onSelect={(id) => {
+          setClusterIds(null);
+          handleMarkerClick(id);
+        }}
+        onClose={() => setClusterIds(null)}
+      />
+
       {/* 모바일 바텀 시트 */}
       <div className="lg:hidden">
         <BottomSheet>
@@ -147,6 +231,10 @@ export default function HomePage() {
             restaurants={orderedRestaurants}
             isLoading={isLoading}
             isError={isError}
+            hasMoreOutsideView={
+              restaurants.length > 0 && visibleRestaurants.length === 0
+            }
+            selectedId={selectedId}
           />
         </BottomSheet>
       </div>
@@ -157,7 +245,11 @@ export default function HomePage() {
           {/* 패널 헤더 */}
           <div className="flex items-center justify-between px-4 pt-16 pb-3 border-b border-border flex-shrink-0">
             <span className="text-sm font-semibold text-ink-primary">
-              식당 목록 {restaurants.length > 0 && `(${restaurants.length})`}
+              식당 목록{' '}
+              {restaurants.length > 0 &&
+                (visibleRestaurants.length === restaurants.length
+                  ? `(${restaurants.length})`
+                  : `(${visibleRestaurants.length} / ${restaurants.length})`)}
             </span>
             <button
               type="button"
@@ -174,6 +266,10 @@ export default function HomePage() {
               restaurants={orderedRestaurants}
               isLoading={isLoading}
               isError={isError}
+              hasMoreOutsideView={
+                restaurants.length > 0 && visibleRestaurants.length === 0
+              }
+              selectedId={selectedId}
             />
           </div>
         </aside>
