@@ -120,9 +120,7 @@ export function BottomSheetContent({
       )}
 
       {/* 신선 진입 상태 + peek/half: 인사말 + 통계 */}
-      {isFreshEntry && snap !== 'full' && (
-        <WelcomeStats restaurants={restaurants} />
-      )}
+      {isFreshEntry && snap !== 'full' && <WelcomeStats />}
 
       {/* 카테고리 빠른 필터 칩 — 항상 노출 (단 full 상태 검색 모드 외) */}
       <CategoryChipsBar />
