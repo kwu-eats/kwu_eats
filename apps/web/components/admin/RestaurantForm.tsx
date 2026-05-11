@@ -57,6 +57,7 @@ const partnershipRowSchema = z.object({
     'ELECTRONICS_INFO',
     'HUMANITIES_SOCIAL',
     'POLICY_LAW',
+    'FREE_MAJOR',
   ]),
   instagramUrl: z
     .string()
@@ -453,6 +454,7 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
                       <option value="ELECTRONICS_INFO">전자정보공과대학</option>
                       <option value="HUMANITIES_SOCIAL">인문사회과학대학</option>
                       <option value="POLICY_LAW">정책법학대학</option>
+                      <option value="FREE_MAJOR">자유전공학부</option>
                     </select>
                     <button
                       type="button"

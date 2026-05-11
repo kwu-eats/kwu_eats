@@ -41,6 +41,7 @@ enum College {
   ELECTRONICS_INFO
   HUMANITIES_SOCIAL
   POLICY_LAW
+  FREE_MAJOR
 }
 
 enum NoticeCategory {
