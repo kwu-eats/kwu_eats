@@ -41,10 +41,11 @@ interface UseMarkerClustererOptions {
 
 function buildSinglePinSvg(size: SizeTier, isPartner: boolean): string {
   if (size === 'dot') {
+    // 손가락 탭 가능하도록 18~20px 로 키움. viewBox 는 그대로 유지해 디자인 비례 보존.
     if (isPartner) {
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.5" fill="${BRAND_COLOR}" stroke="white" stroke-width="1.5"/><circle cx="6" cy="6" r="1.5" fill="${PARTNER_STAR_COLOR}"/></svg>`;
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="${BRAND_COLOR}" stroke="white" stroke-width="2"/><circle cx="10" cy="10" r="2.5" fill="${PARTNER_STAR_COLOR}"/></svg>`;
     }
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="3.5" fill="${BRAND_COLOR}" stroke="white" stroke-width="1.25"/></svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" fill="${BRAND_COLOR}" stroke="white" stroke-width="2"/></svg>`;
   }
   if (size === 'small') {
     const star = isPartner
@@ -59,9 +60,9 @@ function buildSinglePinSvg(size: SizeTier, isPartner: boolean): string {
 }
 
 function buildGroupPinSvg(size: SizeTier, count: number): string {
-  // dot 사이즈는 너무 작아 숫자 못 보여줌 — 약간 큰 점으로만 표시
+  // dot 사이즈는 숫자 못 보여주지만 단일보다 살짝 크게 — 묶음임을 시각적으로 차별.
   if (size === 'dot') {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="${BRAND_COLOR}" stroke="white" stroke-width="1.5"/></svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="8.5" fill="${BRAND_COLOR}" stroke="white" stroke-width="2.5"/></svg>`;
   }
   // 표시 가능한 최대치 — 100개 넘는 건물은 없을 거지만 안전장치
   const label = count > 99 ? '99+' : String(count);
@@ -78,11 +79,14 @@ function tierForLevel(level: number): SizeTier {
 }
 
 // 줌 레벨별 클러스터 그리드 크기 (픽셀).
-// 멀리 줌아웃 할수록 같은 픽셀 범위가 큰 실거리를 커버하므로 더 공격적으로 묶어야 자연스러움.
+// level 1 (최대 줌인) 은 minLevel 로 제외되니 값은 의미 없음.
+// 2 → 5 까지 점진적으로 더 공격적으로 묶기.
 function gridSizeForLevel(level: number): number {
-  if (level >= 4) return 180;
-  if (level === 3) return 130;
-  return 80;
+  if (level === 1) return 80;
+  if (level === 2) return 100;
+  if (level === 3) return 140;
+  if (level === 4) return 200;
+  return 320; // level 5+
 }
 
 /**
@@ -127,8 +131,8 @@ export function useMarkerClusterer(
     // 단일 식당용 6 이미지 (3 tier × 2 partner)
     const singleImages: Record<SizeTier, { partner: kakao.maps.MarkerImage; normal: kakao.maps.MarkerImage }> = {
       dot: {
-        partner: makeDotImg(buildSinglePinSvg('dot', true), 12, 12),
-        normal: makeDotImg(buildSinglePinSvg('dot', false), 10, 10),
+        partner: makeDotImg(buildSinglePinSvg('dot', true), 20, 20),
+        normal: makeDotImg(buildSinglePinSvg('dot', false), 18, 18),
       },
       small: {
         partner: makeImg(buildSinglePinSvg('small', true), 22, 28),
@@ -150,7 +154,7 @@ export function useMarkerClusterer(
       const svg = buildGroupPinSvg(tier, count);
       const img =
         tier === 'dot'
-          ? makeDotImg(svg, 14, 14)
+          ? makeDotImg(svg, 22, 22)
           : tier === 'small'
             ? makeImg(svg, 25, 31)
             : makeImg(svg, 36, 44);
@@ -166,7 +170,8 @@ export function useMarkerClusterer(
     const clusterer = new window.kakao.maps.MarkerClusterer({
       map,
       averageCenter: true,
-      minLevel: 3,
+      // 클러스터링 활성화 시작 줌 레벨. level 1 (최대 줌인) 에선 개별 마커 우선.
+      minLevel: 2,
       minClusterSize,
       disableClickZoom: true,
       // 초기 줌 레벨에 맞는 gridSize. zoom_changed 핸들러에서 동적 갱신됨.
@@ -213,6 +218,7 @@ export function useMarkerClusterer(
     });
 
     let currentTier = tierForLevel(map.getLevel());
+    let currentGridSize = gridSizeForLevel(map.getLevel());
 
     // Kakao 클러스터 click 핸들러용: Marker → 그 그룹의 모든 식당 id
     const markerToIds = new WeakMap<kakao.maps.Marker, string[]>();
@@ -249,18 +255,23 @@ export function useMarkerClusterer(
       handleClusterClick,
     );
 
-    // 줌 단계 변화 시: 마커 이미지 + 클러스터 gridSize 둘 다 갱신.
-    // tier 가 같으면(같은 단계 내 미세 변동) 스킵해서 불필요한 redraw 방지.
+    // 줌 단계 변화 시: 마커 이미지(tier) + 클러스터 gridSize 를 각각 변화 있을 때만 갱신.
+    // tier 와 gridSize 는 같은 level 에서 동시에 바뀌지 않을 수 있어 분리해서 체크.
     const handleZoom = () => {
       const nextLevel = map.getLevel();
       const nextTier = tierForLevel(nextLevel);
-      if (nextTier === currentTier) return;
-      currentTier = nextTier;
-      markersData.forEach(({ marker, input }) => {
-        marker.setImage(pickImage(nextTier, input));
-      });
-      clusterer.setGridSize(gridSizeForLevel(nextLevel));
-      clusterer.redraw();
+      if (nextTier !== currentTier) {
+        currentTier = nextTier;
+        markersData.forEach(({ marker, input }) => {
+          marker.setImage(pickImage(nextTier, input));
+        });
+      }
+      const nextGridSize = gridSizeForLevel(nextLevel);
+      if (nextGridSize !== currentGridSize) {
+        currentGridSize = nextGridSize;
+        clusterer.setGridSize(nextGridSize);
+        clusterer.redraw();
+      }
     };
     window.kakao.maps.event.addListener(map, 'zoom_changed', handleZoom);
 
