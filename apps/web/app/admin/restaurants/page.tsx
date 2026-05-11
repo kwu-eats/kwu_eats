@@ -1,9 +1,9 @@
 'use client';
 
 import type { Zone } from '@pangchelin/types';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Search, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { useDeleteRestaurant } from '@/hooks/mutations/useRestaurantMutations';
 import { useRestaurants } from '@/hooks/queries/useRestaurants';
@@ -20,6 +20,15 @@ export default function AdminRestaurantsPage() {
   const { data: restaurants, isLoading } = useRestaurants();
   const deleteRestaurant = useDeleteRestaurant();
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+
+  // 식당명 부분 일치(대소문자 무관). 100여 개 규모라 클라이언트 필터링 충분.
+  const filtered = useMemo(() => {
+    if (!restaurants) return restaurants;
+    const q = query.trim().toLowerCase();
+    if (!q) return restaurants;
+    return restaurants.filter((r) => r.name.toLowerCase().includes(q));
+  }, [restaurants, query]);
 
   function handleDeleteConfirm() {
     if (!deleteTargetId) return;
@@ -39,6 +48,33 @@ export default function AdminRestaurantsPage() {
           <Plus size={16} />
           식당 추가
         </button>
+      </div>
+
+      {/* 검색창 — 식당명 부분 일치 */}
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 h-10 focus-within:border-primary-500">
+        <Search size={16} strokeWidth={1.75} className="flex-shrink-0 text-ink-muted" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="식당 이름으로 검색"
+          className="flex-1 bg-transparent text-sm text-ink-primary placeholder:text-ink-subtle focus:outline-none"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery('')}
+            aria-label="검색어 지우기"
+            className="flex-shrink-0 text-ink-muted hover:text-ink-body"
+          >
+            <X size={16} strokeWidth={1.75} />
+          </button>
+        )}
+        {!isLoading && query && (
+          <span className="flex-shrink-0 text-xs text-ink-muted">
+            {filtered?.length ?? 0}개
+          </span>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border bg-surface">
@@ -61,15 +97,17 @@ export default function AdminRestaurantsPage() {
                     ))}
                   </tr>
                 ))
-              : restaurants?.length === 0
+              : filtered?.length === 0
               ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center text-sm text-ink-muted">
-                    등록된 식당이 없어요
+                    {query
+                      ? `"${query}" 검색 결과가 없어요`
+                      : '등록된 식당이 없어요'}
                   </td>
                 </tr>
               )
-              : restaurants?.map((r) => (
+              : filtered?.map((r) => (
                   <tr key={r.id} className="border-b border-border last:border-0">
                     <td className="px-4 py-3 font-medium text-ink-primary">{r.name}</td>
                     <td className="px-4 py-3 text-ink-body">
