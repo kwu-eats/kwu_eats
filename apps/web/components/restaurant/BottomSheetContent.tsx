@@ -3,10 +3,12 @@
 import type { RestaurantListItem } from '@pangchelin/types';
 import { RotateCcw } from 'lucide-react';
 
+import { CategoryChipsBar } from '@/components/filters/CategoryChipsBar';
 import { useFilterStore } from '@/lib/stores/filterStore';
 import { useSheetStore } from '@/lib/stores/sheetStore';
 
 import { RestaurantListItem as RestaurantCard } from './RestaurantListItem';
+import { WelcomeStats } from './WelcomeStats';
 
 interface Props {
   restaurants: RestaurantListItem[];
@@ -101,6 +103,9 @@ export function BottomSheetContent({
     );
   }
 
+  // 선택·필터 없는 '신선 진입' 상태에서만 환영 메시지 노출.
+  const isFreshEntry = !selectedId && !hasActiveFilters;
+
   return (
     <div>
       {/* full 상태: 검색창 */}
@@ -113,6 +118,14 @@ export function BottomSheetContent({
           />
         </div>
       )}
+
+      {/* 신선 진입 상태 + peek/half: 인사말 + 통계 */}
+      {isFreshEntry && snap !== 'full' && (
+        <WelcomeStats restaurants={restaurants} />
+      )}
+
+      {/* 카테고리 빠른 필터 칩 — 항상 노출 (단 full 상태 검색 모드 외) */}
+      <CategoryChipsBar />
 
       {/* peek 상태: 첫 번째 카드 + 더보기 */}
       {snap === 'peek' ? (

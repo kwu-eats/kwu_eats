@@ -27,24 +27,23 @@ interface BottomSheetProps {
   children: ReactNode;
 }
 
+// SSR/client hydration mismatch 방지를 위해 window 비의존 상수로 시작.
+// 어떤 viewport 높이보다도 큰 값이라 시트가 화면 아래에 위치 → 첫 paint 시 안 보임.
+// mount 후 useEffect 에서 실제 windowHeight 기반 snap 위치로 spring 애니메이션.
+const SAFE_BELOW_VIEWPORT = 9999;
+
 export function BottomSheet({ children }: BottomSheetProps) {
   const { snap, setSnap } = useSheetStore();
-  const y = useMotionValue(0);
   const windowHeight = useRef(
     typeof window !== 'undefined' ? window.innerHeight : 800,
   );
+  const y = useMotionValue(SAFE_BELOW_VIEWPORT);
 
-  // snap 변경 시 애니메이션
+  // mount 및 snap 변경 시 spring 애니메이션 — 첫 mount 도 아래에서 위로 올라옴
   useEffect(() => {
     const target = getSnapY(snap, windowHeight.current);
     animate(y, target, { type: 'spring', stiffness: 400, damping: 40 });
   }, [snap, y]);
-
-  // 초기 위치 설정
-  useEffect(() => {
-    y.set(getSnapY('peek', windowHeight.current));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // 드래그 종료 시 가장 가까운 snap으로 이동
   function handleDragEnd() {
@@ -64,6 +63,13 @@ export function BottomSheet({ children }: BottomSheetProps) {
     y,
     [getSnapY('full', windowHeight.current), getSnapY('peek', windowHeight.current)],
     [0.3, 0],
+  );
+
+  // 스크롤 영역의 최대 높이 = 시트의 viewport 안에 보이는 부분 - 드래그 핸들(약 30px).
+  // 시트 자체 height 가 100dvh 라 그대로 두면 스크롤 영역이 viewport 밖까지 늘어나
+  // 스크롤 max 위치에서 마지막 아이템이 화면 가장자리 너머에 가려지는 문제가 있음.
+  const scrollMaxHeight = useTransform(y, (val) =>
+    Math.max(60, windowHeight.current - val - 30),
   );
 
   return (
@@ -90,13 +96,17 @@ export function BottomSheet({ children }: BottomSheetProps) {
           <div className="h-1 w-9 rounded-full bg-border-strong" />
         </div>
 
-        {/* 콘텐츠 영역 (스크롤) */}
-        <div
-          className="flex-1 overflow-y-auto overscroll-contain pb-safe"
-          style={{ touchAction: snap === 'full' ? 'pan-y' : 'none' }}
+        {/* 콘텐츠 영역 (스크롤) — maxHeight 로 viewport 가시 영역에 맞춤.
+            half 에서도 touchAction: pan-y 로 스크롤 허용 (peek 만 드래그 우선) */}
+        <motion.div
+          className="overflow-y-auto overscroll-contain pb-safe"
+          style={{
+            maxHeight: scrollMaxHeight,
+            touchAction: snap === 'peek' ? 'none' : 'pan-y',
+          }}
         >
           {children}
-        </div>
+        </motion.div>
       </motion.div>
     </>
   );
