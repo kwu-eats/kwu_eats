@@ -28,6 +28,8 @@ const RESTAURANT_LIST_SELECT = {
   phone: true,
   businessHours: true,
   isPartner: true,
+  coverImageUrl: true,
+  externalMenuUrl: true,
   categories: {
     select: {
       category: { select: { id: true, name: true, icon: true } },
@@ -54,6 +56,8 @@ const RESTAURANT_DETAIL_SELECT = {
   phone: true,
   businessHours: true,
   isPartner: true,
+  coverImageUrl: true,
+  externalMenuUrl: true,
   createdAt: true,
   updatedAt: true,
   categories: {

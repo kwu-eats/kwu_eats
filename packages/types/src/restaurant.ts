@@ -71,6 +71,10 @@ export interface Restaurant {
   phone?: string | null;
   businessHours: BusinessHoursMap;
   isPartner: boolean;
+  /** 식당 대표 사진 URL (S3) */
+  coverImageUrl?: string | null;
+  /** 체인점 등 공식 메뉴 페이지 URL. 있으면 상세 페이지에서 "공식 메뉴 보기" 버튼 노출. */
+  externalMenuUrl?: string | null;
   partnerships?: RestaurantPartnership[];
   createdAt: string;
   updatedAt: string;
@@ -107,6 +111,8 @@ export interface CreateRestaurantRequest {
   phone?: string;
   businessHours: BusinessHoursMap;
   isPartner?: boolean;
+  coverImageUrl?: string;
+  externalMenuUrl?: string;
   partnerships?: PartnershipInput[];
   categoryIds?: string[];
 }

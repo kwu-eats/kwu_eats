@@ -60,6 +60,8 @@ model Restaurant {
   phone                String?
   businessHours        Json
   isPartner            Boolean                 @default(false)
+  coverImageUrl        String?
+  externalMenuUrl      String?
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt
   menus                Menu[]
@@ -86,20 +88,25 @@ model RestaurantPartnership {
   @@index([college])
 }
 
+/// 사이즈/옵션별 가격 표현 시 Menu.priceOptions 에 [{"label":"소","price":30000},...] 저장.
+/// Menu.category 는 메뉴 카테고리 라벨 (예: "커피", "찌개류"). 없으면 "기타" 그룹으로 처리.
 model Menu {
-  id           String      @id @default(cuid())
-  restaurantId String
-  name         String
-  price        Int
-  imageUrl     String?
-  isSignature  Boolean     @default(false)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  reports      Report[]
+  id            String      @id @default(cuid())
+  restaurantId  String
+  name          String
+  price         Int
+  priceOptions  Json?
+  category      String?
+  imageUrl      String?
+  isSignature   Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  reports       Report[]
 
   @@index([restaurantId])
   @@index([restaurantId, isSignature])
+  @@index([restaurantId, category])
 }
 
 model Category {
