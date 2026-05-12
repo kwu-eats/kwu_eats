@@ -12,6 +12,8 @@ export const MARKER_CLUSTER_THRESHOLD = 1;
 const BRAND_COLOR = '#D85A30';
 const PARTNER_STAR_COLOR = '#EF9F27';
 const CLOSED_OPACITY = 0.4;
+// 선택 마커 = 브랜드 색 유지. 흰 stroke 굵게 + 사이즈 1.2x 로만 차별.
+const SELECTED_SCALE = 1.22;
 
 type SizeTier = 'dot' | 'small' | 'full';
 
@@ -33,43 +35,52 @@ interface ClusterMarkerInput {
 interface UseMarkerClustererOptions {
   enabled: boolean;
   minClusterSize?: number;
+  /** 선택된 식당 id — 해당 마커 SVG 가 진한 테두리 버전으로 교체됨 */
+  selectedId?: string | null;
   /** 단일 식당 마커 클릭 시 */
   onMarkerClick?: (id: string) => void;
   /** 건물(2+) 마커 또는 Kakao 클러스터 버블 클릭 시 */
   onClusterClick?: (restaurantIds: string[]) => void;
 }
 
-function buildSinglePinSvg(size: SizeTier, isPartner: boolean): string {
+// 선택 마커: stroke 색은 흰색 유지(브랜드 디자인 보존) + 굵기 2배.
+// 추가로 SVG dimension 자체를 1.22배 키워 한눈에 식별. 색은 절대 안 바꿈.
+function strokeAttrs(isSelected: boolean, baseWidth: number): string {
+  const width = isSelected ? baseWidth * 2 : baseWidth;
+  return `stroke="white" stroke-width="${width}"`;
+}
+
+function buildSinglePinSvg(size: SizeTier, isPartner: boolean, isSelected: boolean): string {
   if (size === 'dot') {
     // 손가락 탭 가능하도록 18~20px 로 키움. viewBox 는 그대로 유지해 디자인 비례 보존.
     if (isPartner) {
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="${BRAND_COLOR}" stroke="white" stroke-width="2"/><circle cx="10" cy="10" r="2.5" fill="${PARTNER_STAR_COLOR}"/></svg>`;
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="${BRAND_COLOR}" ${strokeAttrs(isSelected, 2)}/><circle cx="10" cy="10" r="2.5" fill="${PARTNER_STAR_COLOR}"/></svg>`;
     }
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" fill="${BRAND_COLOR}" stroke="white" stroke-width="2"/></svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" fill="${BRAND_COLOR}" ${strokeAttrs(isSelected, 2)}/></svg>`;
   }
   if (size === 'small') {
     const star = isPartner
       ? `<text x="11" y="14.5" font-size="8" font-weight="700" text-anchor="middle" fill="${PARTNER_STAR_COLOR}">★</text>`
       : '';
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="28" viewBox="0 0 22 28"><path d="M11 0 C4.92 0 0 4.92 0 11 C0 18 11 28 11 28 C11 28 22 18 22 11 C22 4.92 17.08 0 11 0 Z" fill="${BRAND_COLOR}" stroke="white" stroke-width="1.5"/><circle cx="11" cy="11" r="4" fill="white"/>${star}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="28" viewBox="0 0 22 28"><path d="M11 0 C4.92 0 0 4.92 0 11 C0 18 11 28 11 28 C11 28 22 18 22 11 C22 4.92 17.08 0 11 0 Z" fill="${BRAND_COLOR}" ${strokeAttrs(isSelected, 1.5)}/><circle cx="11" cy="11" r="4" fill="white"/>${star}</svg>`;
   }
   const star = isPartner
     ? `<text x="16" y="20" font-size="11" font-weight="700" text-anchor="middle" fill="${PARTNER_STAR_COLOR}">★</text>`
     : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40"><path d="M16 0 C7.16 0 0 7.16 0 16 C0 26 16 40 16 40 C16 40 32 26 32 16 C32 7.16 24.84 0 16 0 Z" fill="${BRAND_COLOR}" stroke="white" stroke-width="2"/><circle cx="16" cy="16" r="6" fill="white"/>${star}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40"><path d="M16 0 C7.16 0 0 7.16 0 16 C0 26 16 40 16 40 C16 40 32 26 32 16 C32 7.16 24.84 0 16 0 Z" fill="${BRAND_COLOR}" ${strokeAttrs(isSelected, 2)}/><circle cx="16" cy="16" r="6" fill="white"/>${star}</svg>`;
 }
 
-function buildGroupPinSvg(size: SizeTier, count: number): string {
+function buildGroupPinSvg(size: SizeTier, count: number, isSelected: boolean): string {
   // dot 사이즈는 숫자 못 보여주지만 단일보다 살짝 크게 — 묶음임을 시각적으로 차별.
   if (size === 'dot') {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="8.5" fill="${BRAND_COLOR}" stroke="white" stroke-width="2.5"/></svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="8.5" fill="${BRAND_COLOR}" ${strokeAttrs(isSelected, 2.5)}/></svg>`;
   }
   // 표시 가능한 최대치 — 100개 넘는 건물은 없을 거지만 안전장치
   const label = count > 99 ? '99+' : String(count);
   if (size === 'small') {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="28" viewBox="0 0 22 28"><path d="M11 0 C4.92 0 0 4.92 0 11 C0 18 11 28 11 28 C11 28 22 18 22 11 C22 4.92 17.08 0 11 0 Z" fill="${BRAND_COLOR}" stroke="white" stroke-width="1.5"/><circle cx="11" cy="11" r="7" fill="white"/><text x="11" y="14" font-size="9" font-weight="800" text-anchor="middle" fill="${BRAND_COLOR}">${label}</text></svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="28" viewBox="0 0 22 28"><path d="M11 0 C4.92 0 0 4.92 0 11 C0 18 11 28 11 28 C11 28 22 18 22 11 C22 4.92 17.08 0 11 0 Z" fill="${BRAND_COLOR}" ${strokeAttrs(isSelected, 1.5)}/><circle cx="11" cy="11" r="7" fill="white"/><text x="11" y="14" font-size="9" font-weight="800" text-anchor="middle" fill="${BRAND_COLOR}">${label}</text></svg>`;
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40"><path d="M16 0 C7.16 0 0 7.16 0 16 C0 26 16 40 16 40 C16 40 32 26 32 16 C32 7.16 24.84 0 16 0 Z" fill="${BRAND_COLOR}" stroke="white" stroke-width="2"/><circle cx="16" cy="16" r="9" fill="white"/><text x="16" y="20" font-size="13" font-weight="800" text-anchor="middle" fill="${BRAND_COLOR}">${label}</text></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40"><path d="M16 0 C7.16 0 0 7.16 0 16 C0 26 16 40 16 40 C16 40 32 26 32 16 C32 7.16 24.84 0 16 0 Z" fill="${BRAND_COLOR}" ${strokeAttrs(isSelected, 2)}/><circle cx="16" cy="16" r="9" fill="white"/><text x="16" y="20" font-size="13" font-weight="800" text-anchor="middle" fill="${BRAND_COLOR}">${label}</text></svg>`;
 }
 
 function tierForLevel(level: number): SizeTier {
@@ -101,13 +112,20 @@ function gridSizeForLevel(level: number): number {
 export function useMarkerClusterer(
   map: kakao.maps.Map | null,
   markers: ClusterMarkerInput[],
-  { enabled, minClusterSize = 2, onMarkerClick, onClusterClick }: UseMarkerClustererOptions,
+  { enabled, minClusterSize = 2, selectedId, onMarkerClick, onClusterClick }: UseMarkerClustererOptions,
 ) {
   const clustererRef = useRef<kakao.maps.MarkerClusterer | null>(null);
   const onMarkerClickRef = useRef(onMarkerClick);
   onMarkerClickRef.current = onMarkerClick;
   const onClusterClickRef = useRef(onClusterClick);
   onClusterClickRef.current = onClusterClick;
+  // selectedId 변경 시 마커 이미지만 갱신하기 위해 markersData 를 ref 로 노출
+  const markersDataRef = useRef<{ marker: kakao.maps.Marker; input: ClusterMarkerInput }[]>([]);
+  const currentTierRef = useRef<SizeTier>('full');
+  // pickImage 클로저 — selectedId 갱신 시 다른 useEffect 에서 호출
+  const pickImageRef = useRef<((tier: SizeTier, m: ClusterMarkerInput) => kakao.maps.MarkerImage) | null>(null);
+  const selectedIdRef = useRef<string | null | undefined>(selectedId);
+  selectedIdRef.current = selectedId;
 
   useEffect(() => {
     if (!map || !enabled) return;
@@ -128,44 +146,51 @@ export function useMarkerClusterer(
         { offset: new window.kakao.maps.Point(w / 2, h / 2) },
       );
 
-    // 단일 식당용 6 이미지 (3 tier × 2 partner)
-    const singleImages: Record<SizeTier, { partner: kakao.maps.MarkerImage; normal: kakao.maps.MarkerImage }> = {
-      dot: {
-        partner: makeDotImg(buildSinglePinSvg('dot', true), 20, 20),
-        normal: makeDotImg(buildSinglePinSvg('dot', false), 18, 18),
-      },
-      small: {
-        partner: makeImg(buildSinglePinSvg('small', true), 22, 28),
-        normal: makeImg(buildSinglePinSvg('small', false), 22, 28),
-      },
-      full: {
-        partner: makeImg(buildSinglePinSvg('full', true), 32, 40),
-        normal: makeImg(buildSinglePinSvg('full', false), 32, 40),
-      },
+    // 선택 시 dimension 만 1.22x — viewBox 는 SVG 내부에서 자동 스케일
+    const scaled = (n: number, isSelected: boolean) =>
+      Math.round(n * (isSelected ? SELECTED_SCALE : 1));
+
+    // 단일 식당용 12 이미지 (3 tier × 2 partner × 2 selected) — lazy 생성
+    const singleImageCache = new Map<string, kakao.maps.MarkerImage>();
+    const getSingleImage = (tier: SizeTier, isPartner: boolean, isSelected: boolean) => {
+      const key = `${tier}:${isPartner ? 1 : 0}:${isSelected ? 1 : 0}`;
+      const cached = singleImageCache.get(key);
+      if (cached) return cached;
+      const svg = buildSinglePinSvg(tier, isPartner, isSelected);
+      const baseW =
+        tier === 'dot' ? (isPartner ? 20 : 18) : tier === 'small' ? 22 : 32;
+      const baseH = tier === 'dot' ? baseW : tier === 'small' ? 28 : 40;
+      const w = scaled(baseW, isSelected);
+      const h = scaled(baseH, isSelected);
+      const img = tier === 'dot' ? makeDotImg(svg, w, h) : makeImg(svg, w, h);
+      singleImageCache.set(key, img);
+      return img;
     };
 
-    // 그룹 마커용 이미지 캐시 — tier:count 별로 lazy 생성.
-    // 단일 마커와 미세 구분을 위해 ~12% 크게 렌더링 (SVG viewBox 자동 스케일).
+    // 그룹 마커용 이미지 캐시 — tier:count:selected 별로 lazy 생성.
     const groupImageCache = new Map<string, kakao.maps.MarkerImage>();
-    const getGroupImage = (tier: SizeTier, count: number) => {
-      const key = `${tier}:${count}`;
+    const getGroupImage = (tier: SizeTier, count: number, isSelected: boolean) => {
+      const key = `${tier}:${count}:${isSelected ? 1 : 0}`;
       const cached = groupImageCache.get(key);
       if (cached) return cached;
-      const svg = buildGroupPinSvg(tier, count);
-      const img =
-        tier === 'dot'
-          ? makeDotImg(svg, 22, 22)
-          : tier === 'small'
-            ? makeImg(svg, 25, 31)
-            : makeImg(svg, 36, 44);
+      const svg = buildGroupPinSvg(tier, count, isSelected);
+      const baseW = tier === 'dot' ? 22 : tier === 'small' ? 25 : 36;
+      const baseH = tier === 'dot' ? 22 : tier === 'small' ? 31 : 44;
+      const w = scaled(baseW, isSelected);
+      const h = scaled(baseH, isSelected);
+      const img = tier === 'dot' ? makeDotImg(svg, w, h) : makeImg(svg, w, h);
       groupImageCache.set(key, img);
       return img;
     };
 
+    // pickImage 는 ref(selectedIdRef) 를 매번 읽어서 항상 최신 선택 상태 반영
     const pickImage = (tier: SizeTier, m: ClusterMarkerInput) => {
-      if (m.count > 1) return getGroupImage(tier, m.count);
-      return m.isPartner ? singleImages[tier].partner : singleImages[tier].normal;
+      const sid = selectedIdRef.current;
+      const isSelected = !!sid && m.restaurantIds.includes(sid);
+      if (m.count > 1) return getGroupImage(tier, m.count, isSelected);
+      return getSingleImage(tier, m.isPartner, isSelected);
     };
+    pickImageRef.current = pickImage;
 
     const clusterer = new window.kakao.maps.MarkerClusterer({
       map,
@@ -218,6 +243,7 @@ export function useMarkerClusterer(
     });
 
     let currentTier = tierForLevel(map.getLevel());
+    currentTierRef.current = currentTier;
     let currentGridSize = gridSizeForLevel(map.getLevel());
 
     // Kakao 클러스터 click 핸들러용: Marker → 그 그룹의 모든 식당 id
@@ -241,6 +267,7 @@ export function useMarkerClusterer(
     });
     clusterer.addMarkers(markersData.map((d) => d.marker));
     clustererRef.current = clusterer;
+    markersDataRef.current = markersData;
 
     // Kakao 클러스터 (여러 건물 묶음) 클릭 → 모든 식당 id flatten
     const handleClusterClick = (cluster: kakao.maps.Cluster) => {
@@ -262,6 +289,7 @@ export function useMarkerClusterer(
       const nextTier = tierForLevel(nextLevel);
       if (nextTier !== currentTier) {
         currentTier = nextTier;
+        currentTierRef.current = nextTier;
         markersData.forEach(({ marker, input }) => {
           marker.setImage(pickImage(nextTier, input));
         });
@@ -285,6 +313,18 @@ export function useMarkerClusterer(
       clusterer.clear();
       markersData.forEach(({ marker }) => marker.setMap(null));
       clustererRef.current = null;
+      markersDataRef.current = [];
+      pickImageRef.current = null;
     };
   }, [map, markers, enabled, minClusterSize]);
+
+  // selectedId 변경 → 영향 마커 이미지만 setImage 로 교체 (clusterer 재생성 없음)
+  useEffect(() => {
+    const pick = pickImageRef.current;
+    const tier = currentTierRef.current;
+    if (!pick) return;
+    markersDataRef.current.forEach(({ marker, input }) => {
+      marker.setImage(pick(tier, input));
+    });
+  }, [selectedId]);
 }

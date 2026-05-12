@@ -36,11 +36,13 @@ export const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(
           level: 5,
         });
         mapRef.current = map;
-        // 컨테이너 크기가 확정된 뒤 relayout으로 중심 재설정
-        setTimeout(() => {
-          map.setCenter(center);
-        }, 100);
+        // onMapReady 가 먼저 호출되어 사용자가 setCenter/setLevel 로 뷰포트 복원할
+        // 기회를 갖도록 한 다음, 컨테이너 크기 보정용 relayout 만 실행.
+        // (이전엔 setCenter 로 다시 KWU_CENTER 로 되돌려 복원이 덮어써졌음)
         onMapReady?.(map);
+        setTimeout(() => {
+          map.relayout();
+        }, 100);
       });
     }, [scriptLoaded, onMapReady]);
 

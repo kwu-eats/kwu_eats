@@ -1,6 +1,7 @@
 'use client';
 
 import { PanelLeftOpen, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { ActiveFilterBar } from '@/components/filters/ActiveFilterBar';
@@ -12,7 +13,6 @@ import { ClusterPicker } from '@/components/map/ClusterPicker';
 import { KakaoMap, type KakaoMapHandle } from '@/components/map/KakaoMap';
 import { MapFloatingButtons } from '@/components/map/MapFloatingButtons';
 import { RestaurantMarker } from '@/components/map/RestaurantMarker';
-import { SelectedMarkerHighlight } from '@/components/map/SelectedMarkerHighlight';
 import { BottomSheetContent } from '@/components/restaurant/BottomSheetContent';
 import { SearchSheet } from '@/components/search/SearchSheet';
 import { useRestaurants } from '@/hooks/queries/useRestaurants';
@@ -24,6 +24,7 @@ import {
 } from '@/hooks/useMarkerClusterer';
 import { groupRestaurantsByLocation } from '@/lib/groupRestaurants';
 import { useFilterStore } from '@/lib/stores/filterStore';
+import { useMapStore } from '@/lib/stores/mapStore';
 import { useSheetStore } from '@/lib/stores/sheetStore';
 
 interface MapBounds {
@@ -34,6 +35,7 @@ interface MapBounds {
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const mapRef = useRef<KakaoMapHandle>(null);
   const [map, setMap] = useState<kakao.maps.Map | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -61,15 +63,27 @@ export default function HomePage() {
 
   const { data: restaurants = [], isLoading, isError } = useRestaurants(filters);
 
-  // 지도 배경 클릭 시 바텀 시트 내리기 + 가시 영역 추적
+  // 지도 배경 클릭 시 바텀 시트 내리기 + 가시 영역 추적 + 뷰포트 저장/복원
   const handleMapReady = useCallback(
     (mapInstance: kakao.maps.Map) => {
       setMap(mapInstance);
+
+      // 메뉴 상세 → 뒤로 가기로 돌아왔을 때 직전 뷰포트 복원.
+      // getState() 로 읽어 useCallback 의존성에서 빼고 1회만 적용.
+      const saved = useMapStore.getState();
+      if (saved.center && saved.level != null) {
+        mapInstance.setCenter(
+          new window.kakao.maps.LatLng(saved.center.lat, saved.center.lng),
+        );
+        mapInstance.setLevel(saved.level);
+      }
+
       window.kakao.maps.event.addListener(mapInstance, 'click', () => {
         setSnap('peek');
         setSelectedId(null);
       });
-      const updateBounds = () => {
+
+      const updateBoundsAndView = () => {
         const b = mapInstance.getBounds();
         const sw = b.getSouthWest();
         const ne = b.getNorthEast();
@@ -79,10 +93,22 @@ export default function HomePage() {
           minLng: sw.getLng(),
           maxLng: ne.getLng(),
         });
+        // 다음 페이지 → 뒤로 복귀 시 복원하도록 현재 뷰포트도 저장
+        const c = mapInstance.getCenter();
+        useMapStore
+          .getState()
+          .setView(
+            { lat: c.getLat(), lng: c.getLng() },
+            mapInstance.getLevel(),
+          );
       };
       // 초기값 1회 + 이후 패닝/줌이 멈출 때마다 갱신
-      updateBounds();
-      window.kakao.maps.event.addListener(mapInstance, 'idle', updateBounds);
+      updateBoundsAndView();
+      window.kakao.maps.event.addListener(
+        mapInstance,
+        'idle',
+        updateBoundsAndView,
+      );
     },
     [setSnap],
   );
@@ -102,14 +128,28 @@ export default function HomePage() {
     }
   }, [locate, lat, lng]);
 
-  // 검색 결과 선택 시: 지도 이동 + 줌인 + 마커 선택 + 바텀시트 half 로 펼침
+  // 검색 결과 선택 시: 지도 이동 + 줌인 + 마커 선택 + 바텀시트 half 로 펼침.
+  // panTo + setLevel 을 동시에 호출하면 두 애니메이션이 충돌해 종착점이 흔들림.
+  // setCenter(즉시 중심 이동) 한 뒤 setLevel(애니메이션 줌인) 으로 분리하면 안정적.
   const handleSearchSelect = useCallback(
     (restaurant: { id: string; latitude: number; longitude: number }) => {
-      mapRef.current?.panTo(restaurant.latitude, restaurant.longitude);
-      // 줌 레벨이 너무 멀면(>=3) 가까이 당겨오기. 이미 가까우면 유지.
-      const currentLevel = mapRef.current?.map?.getLevel();
-      if (currentLevel && currentLevel > 2) {
-        mapRef.current?.setLevel(2);
+      const m = mapRef.current?.map;
+      if (m) {
+        const target = new window.kakao.maps.LatLng(
+          restaurant.latitude,
+          restaurant.longitude,
+        );
+        m.setCenter(target);
+        // level 1 = 클러스터링 해제 (minLevel: 2). 개별 마커 확실히 노출.
+        if (m.getLevel() > 1) m.setLevel(1, { animate: true });
+        // setLevel 애니메이션 도중 사용자가 바로 카드를 탭해 화면을 떠나면
+        // idle 이벤트가 못 따라잡으므로 store 에도 즉시 저장.
+        useMapStore
+          .getState()
+          .setView(
+            { lat: restaurant.latitude, lng: restaurant.longitude },
+            1,
+          );
       }
       setSelectedId(restaurant.id);
       setSnap('half');
@@ -160,6 +200,7 @@ export default function HomePage() {
   );
   useMarkerClusterer(map, clusterMarkers, {
     enabled: useClusterer,
+    selectedId,
     onMarkerClick: handleMarkerClick,
     onClusterClick: (ids) => setClusterIds(ids),
   });
@@ -185,19 +226,6 @@ export default function HomePage() {
           className="h-full w-full"
           onMapReady={handleMapReady}
         />
-
-        {/* 선택된 식당 마커 위에 펄스 하이라이트 — Clusterer 와 CustomOverlay 양쪽 모두 위에 표시 */}
-        {map && selectedId && (() => {
-          const selected = restaurants.find((r) => r.id === selectedId);
-          if (!selected) return null;
-          return (
-            <SelectedMarkerHighlight
-              map={map}
-              lat={selected.latitude}
-              lng={selected.longitude}
-            />
-          );
-        })()}
 
         {map &&
           !useClusterer &&
@@ -251,7 +279,7 @@ export default function HomePage() {
         restaurants={clusterRestaurants}
         onSelect={(id) => {
           setClusterIds(null);
-          handleMarkerClick(id);
+          router.push(`/restaurants/${id}`);
         }}
         onClose={() => setClusterIds(null)}
       />

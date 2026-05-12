@@ -40,10 +40,10 @@ interface RestaurantMarkerProps {
 
 function buildContent(isOpen: boolean, isPartner: boolean, isSelected: boolean): HTMLElement {
   const color = isOpen ? '#D85A30' : '#8A7D6E';
-  // 선택 시 핀 자체를 키우고(30→42), 흰 테두리+색 후광 2단으로 시각적 우선순위 부여
-  const size = isSelected ? 42 : 30;
+  // 선택 시 핀 크기 키움(30→38) + 외곽에 흰 링 + drop shadow. 어두운 색 사용 안 함.
+  const size = isSelected ? 38 : 30;
   const shadow = isSelected
-    ? `0 0 0 3px white, 0 0 0 7px ${color}, 0 0 0 10px ${color}33, 0 6px 16px rgba(0,0,0,0.35)`
+    ? '0 0 0 3px white, 0 5px 12px rgba(0,0,0,0.35)'
     : '0 2px 6px rgba(0,0,0,0.25)';
 
   // 44px 최소 탭 영역을 위해 wrapper를 넉넉히
@@ -59,7 +59,6 @@ function buildContent(isOpen: boolean, isPartner: boolean, isSelected: boolean):
     'min-height:44px',
     'padding-bottom:2px',
     'transition:transform 0.15s ease',
-    isSelected ? 'transform:translateY(-4px)' : '',
     isSelected ? 'z-index:10' : 'z-index:1',
     'position:relative',
   ].filter(Boolean).join(';');
