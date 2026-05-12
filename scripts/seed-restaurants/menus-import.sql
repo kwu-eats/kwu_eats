@@ -148,7 +148,7 @@ INSERT INTO "Menu" (id, "restaurantId", name, price, "isSignature", "updatedAt")
 INSERT INTO "Menu" (id, "restaurantId", name, price, "isSignature", "updatedAt") SELECT gen_random_uuid()::text, r.id, '순대국밥', 8000, false, NOW() FROM "Restaurant" r WHERE r.name = '광운양꼬치';
 INSERT INTO "Menu" (id, "restaurantId", name, price, "isSignature", "updatedAt") SELECT gen_random_uuid()::text, r.id, '닭곰탕', 8000, false, NOW() FROM "Restaurant" r WHERE r.name = '광운양꼬치';
 INSERT INTO "Menu" (id, "restaurantId", name, price, "isSignature", "updatedAt") SELECT gen_random_uuid()::text, r.id, '뚝배기불고기', 9000, false, NOW() FROM "Restaurant" r WHERE r.name = '광운양꼬치';
-INSERT INTO "Menu" (id, "restaurantId", name, price, "isSignature", "updatedAt") SELECT gen_random_uuid()::text, r.id, '훈둔', 7000, false, NOW() FROM "Restaurant" r WHERE r.name = '광운양꼬치';
+INSERT INTO "Menu" (id, "restaurantId", name, price, "isSignature", "updatedAt") SELECT gen_random_uuid()::text, r.id, '훈툰', 7000, false, NOW() FROM "Restaurant" r WHERE r.name = '광운양꼬치';
 INSERT INTO "Menu" (id, "restaurantId", name, price, "isSignature", "updatedAt") SELECT gen_random_uuid()::text, r.id, '고기물만두', 7000, false, NOW() FROM "Restaurant" r WHERE r.name = '광운양꼬치';
 INSERT INTO "Menu" (id, "restaurantId", name, price, "isSignature", "updatedAt") SELECT gen_random_uuid()::text, r.id, '온면', 7000, false, NOW() FROM "Restaurant" r WHERE r.name = '광운양꼬치';
 INSERT INTO "Menu" (id, "restaurantId", name, price, "isSignature", "updatedAt") SELECT gen_random_uuid()::text, r.id, '야채볶음밥', 7000, false, NOW() FROM "Restaurant" r WHERE r.name = '광운양꼬치';

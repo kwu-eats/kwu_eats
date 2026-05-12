@@ -36,11 +36,18 @@ const RESTAURANT_LIST_SELECT = {
     },
   },
   menus: {
-    select: { id: true, name: true, price: true, imageUrl: true, isSignature: true },
-    orderBy: [
-      { isSignature: 'desc' as const },
-      { price: 'asc' as const },
-    ],
+    select: {
+      id: true,
+      name: true,
+      price: true,
+      priceOptions: true,
+      category: true,
+      imageUrl: true,
+      isSignature: true,
+    },
+    // 입력 순서(첫 메뉴 = 대표) 보존. Python import 시 clock_timestamp() 로 row 마다
+    // createdAt 미세 차이를 주므로 정렬 가능.
+    orderBy: { createdAt: 'asc' as const },
     take: 1,
   },
   ...PARTNERSHIPS_SELECT,
@@ -70,13 +77,13 @@ const RESTAURANT_DETAIL_SELECT = {
       id: true,
       name: true,
       price: true,
+      priceOptions: true,
+      category: true,
       imageUrl: true,
       isSignature: true,
     },
-    orderBy: [
-      { isSignature: 'desc' as const },
-      { price: 'asc' as const },
-    ],
+    // 입력 순서 보존 — MenuList 카테고리 탭과 일관
+    orderBy: { createdAt: 'asc' as const },
   },
   ...PARTNERSHIPS_SELECT,
 } satisfies Prisma.RestaurantSelect;
