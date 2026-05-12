@@ -20,16 +20,30 @@ function formatPriceOptions(options: MenuPriceOption[]): string {
   return options.map((o) => `${o.label} ${o.price.toLocaleString('ko-KR')}원`).join(' / ');
 }
 
+/**
+ * 카테고리를 메인 → (식사) → 사이드 → 기타 → 음료/주류 순으로 묶기 위한 점수.
+ * 키워드 매칭으로 그룹화하고, 그룹 내에서는 입력 순서(idx) 유지.
+ * 카페·전문점 (COFFEE/PHO 등) 처럼 카테고리가 곧 주력 메뉴면 default(20) 로 메인 직후에 배치.
+ */
+function categoryPriority(category: string): number {
+  if (category === ALL_LABEL) return 0;
+  if (/메인|대표|시그니처|main/i.test(category)) return 10;
+  if (/사이드|토핑|안주|추가|side/i.test(category)) return 30;
+  if (category === UNCATEGORIZED_LABEL) return 40;
+  if (/음료|주류|드링크|칵테일|cocktail|juice|drink|soft/i.test(category)) return 50;
+  return 20;
+}
+
 function MenuListComponent({ menus }: Props) {
-  // 카테고리별 그룹화 (입력 순서 보존)
+  // 카테고리별 그룹화 → 우선순위(메인/사이드/음료) 재정렬, 동순위는 입력 순서 유지
   const { categories, grouped } = useMemo(() => {
-    const order: string[] = [];
+    const inputOrder: string[] = [];
     const map = new Map<string, Menu[]>();
     for (const m of menus) {
       const key = m.category?.trim() || UNCATEGORIZED_LABEL;
       if (!map.has(key)) {
         map.set(key, []);
-        order.push(key);
+        inputOrder.push(key);
       }
       map.get(key)!.push(m);
     }
@@ -37,6 +51,11 @@ function MenuListComponent({ menus }: Props) {
     for (const list of map.values()) {
       list.sort((a, b) => Number(b.isSignature) - Number(a.isSignature));
     }
+    // 우선순위 정렬 (stable: 동순위는 입력 순서)
+    const order = inputOrder
+      .map((c, idx) => ({ c, idx, p: categoryPriority(c) }))
+      .sort((a, b) => a.p - b.p || a.idx - b.idx)
+      .map((x) => x.c);
     return { categories: order, grouped: map };
   }, [menus]);
 
