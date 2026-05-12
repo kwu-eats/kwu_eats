@@ -6,10 +6,12 @@ declare namespace kakao {
       constructor(container: HTMLElement, options: MapOptions);
       setCenter(latlng: LatLng): void;
       getCenter(): LatLng;
-      setLevel(level: number, options?: { animate?: boolean }): void;
+      setLevel(level: number, options?: { animate?: boolean; anchor?: LatLng }): void;
       getLevel(): number;
       panTo(latlng: LatLng): void;
       setBounds(bounds: LatLngBounds): void;
+      getBounds(): LatLngBounds;
+      relayout(): void;
     }
 
     class LatLng {
@@ -21,6 +23,8 @@ declare namespace kakao {
     class LatLngBounds {
       constructor(sw?: LatLng, ne?: LatLng);
       extend(latlng: LatLng): void;
+      getSouthWest(): LatLng;
+      getNorthEast(): LatLng;
     }
 
     class CustomOverlay {
@@ -38,6 +42,15 @@ declare namespace kakao {
       removeMarker(marker: Marker): void;
       removeMarkers(markers: Marker[]): void;
       clear(): void;
+      setGridSize(size: number): void;
+      redraw(): void;
+    }
+
+    interface Cluster {
+      getMarkers(): Marker[];
+      getCenter(): LatLng;
+      getBounds(): LatLngBounds;
+      getSize(): number;
     }
 
     class Marker {
@@ -45,6 +58,16 @@ declare namespace kakao {
       setMap(map: Map | null): void;
       setPosition(latlng: LatLng): void;
       getPosition(): LatLng;
+      setImage(image: MarkerImage): void;
+      setOpacity(opacity: number): void;
+    }
+
+    class MarkerImage {
+      constructor(
+        src: string,
+        size: Size,
+        options?: { offset?: Point },
+      );
     }
 
     class Size {
@@ -74,6 +97,8 @@ declare namespace kakao {
     interface MarkerOptions {
       position: LatLng;
       map?: Map;
+      image?: MarkerImage;
+      opacity?: number;
     }
 
     interface MarkerClustererOptions {
@@ -83,6 +108,8 @@ declare namespace kakao {
       gridSize?: number;
       minClusterSize?: number;
       disableClickZoom?: boolean;
+      calculator?: number[];
+      styles?: Array<Record<string, string>>;
     }
 
     namespace event {
@@ -90,15 +117,15 @@ declare namespace kakao {
         latLng: LatLng;
         point: Point;
       }
-      // 이벤트 인자가 종류별로 달라(map click 은 MouseEvent, marker click 은 인자 없음)
-      // 호출측에서 명시한 핸들러 시그니처를 그대로 받기 위해 generic 으로 둔다.
+      // 이벤트 인자가 종류별로 달라(map click 은 MouseEvent, marker click 은 인자 없음,
+      // clusterclick 은 Cluster). 호출측 핸들러 시그니처를 그대로 받기 위해 generic.
       function addListener<H extends (...args: never[]) => void>(
-        target: Map | Marker | CustomOverlay,
+        target: Map | Marker | CustomOverlay | MarkerClusterer,
         type: string,
         handler: H,
       ): void;
       function removeListener<H extends (...args: never[]) => void>(
-        target: Map | Marker | CustomOverlay,
+        target: Map | Marker | CustomOverlay | MarkerClusterer,
         type: string,
         handler: H,
       ): void;

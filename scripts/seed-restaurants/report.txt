@@ -1,0 +1,122 @@
+=== 처리 요약 ===
+성공: 107건
+실패: 0건
+모호한 매칭: 2건
+
+=== 모호한 매칭 (둘 이상 가까운 결과) ===
+- DAYLONG COFFEE:
+    · 데이롱카페 광운대점 | 서울 노원구 광운로12길 38 | 314m
+    · 데이롱카페 석계역점 | 서울 노원구 석계로3길 30 | 492m
+    · 데이롱카페 월계역점 | 서울 노원구 월계로53길 21 | 1403m
+- 후문식당:
+    · 후문식당 | 서울 노원구 석계로13길 25-1 | 239m
+    · 매머드익스프레스 광운대후문점 | 서울 노원구 석계로13길 23 | 258m
+
+=== 매칭 결과 (이름, 카카오명, 거리, 카테고리) ===
+[KWANGWOON_STATION] 인생아구찜                → 인생아구찜 월계점                      | 560m | 한식
+[KWANGWOON_STATION] 서초우동                 → 서초우동 광운대역점                     | 555m | 일식
+[KWANGWOON_STATION] 짝태촌노가리               → 짝태촌노가리                         | 554m | 주점
+[KWANGWOON_STATION] 치킨클럽                 → 치킨클럽 성북역본점                     | 529m | 양식
+[KWANGWOON_STATION] 친친                   → 친친                             | 530m | 한식
+[KWANGWOON_STATION] 여자만아구찜               → 여자만아구찜                         | 516m | 한식
+[KWANGWOON_STATION] 커피는 기억의 끌림           → 커피는기억의끌림                       | 513m | 카페
+[KWANGWOON_STATION] 꽃님맥주                 → 꽃님맥주                           | 510m | 주점
+[KWANGWOON_STATION] 야타이                  → 야타이                            | 512m | 일식
+[KWANGWOON_STATION] 명태이야기                → 명태이야기                          | 520m | 한식
+[KWANGWOON_STATION] 미미식당                 → 미미식당 월계점                       | 479m | 한식
+[KWANGWOON_STATION] 생마차 광운대점             → 생마차 광운대점                       | 479m | 주점
+[KWANGWOON_STATION] 명동찌개마을               → 명동찌개마을 광운대역점                   | 498m | 한식
+[KWANGWOON_STATION] 가마솥뼈다귀감자탕            → 가마솥뼈다귀감자탕                      | 525m | 한식
+[KWANGWOON_STATION] 왕토종순대국               → 왕토종순대국                         | 515m | 한식
+[KWANGWOON_STATION] 마산아구찜                → 마산아구찜                          | 513m | 한식
+[KWANGWOON_STATION] 엄마손 김밥&분식            → 엄마손김밥&분식                       | 493m | 분식
+[KWANGWOON_STATION] 사계절김밥                → 사계절김밥                          | 507m | 분식
+[KWANGWOON_STATION] 돈장군                  → 돈장군 광운대본점                      | 488m | 한식
+[KWANGWOON_STATION] 빈대떡 신사               → 빈대떡신사                          | 497m | 한식
+[KWANGWOON_STATION] 집밥                   → 집밥                             | 498m | 한식
+[KWANGWOON_STATION] 큰맘할매순대국              → 큰맘할매순대국 광운대점                   | 473m | 한식
+[KWANGWOON_STATION] 여우곱창                 → 여우곱창                           | 481m | 한식
+[KWANGWOON_STATION] 가마솥소머리곰탕             → 한우가마솥소머리곰탕                     | 481m | 한식
+[KWANGWOON_STATION] 한방전주콩나물국밥            → 한방전주콩나물국밥 광운대역점                | 460m | 한식
+[KWANGWOON_STATION] 마포 연탄불고기             → 마포연탄불고기                        | 478m | 한식
+[KWANGWOON_STATION] 놀부부대찌개               → 놀부부대찌개 광운대역점                   | 457m | 한식
+[KWANGWOON_STATION] 착한족발                 → 착한족발 월계점                       | 463m | 한식
+[KWANGWOON_STATION] 스마일돈까스               → 스마일돈까스                         | 467m | 일식
+[KWANGWOON_STATION] 마떡다이천                → 마떡다이천 광운대본점                    | 461m | 분식
+[KWANGWOON_STATION] 맛닭꼬                  → 맛닭꼬 광운대점                       | 451m | 한식
+[KWANGWOON_STATION] THE ONE              → 더원                             | 449m | 한식
+[KWANGWOON_STATION] 전주밥상쌈밥               → 전주밥상쌈밥                         | 432m | 한식
+[FRONT_GATE] OSSE Coffee          → 오쎄                             | 413m | 카페
+[FRONT_GATE] 1947 왕만두             → 그옛날1947왕만두                     | 380m | 중식
+[FRONT_GATE] 굿킨                   → 굿킨 광운대점                        | 373m | 한식
+[FRONT_GATE] 전설의 멸치국수             → 전설의멸치국수 월계점                    | 353m | 한식
+[FRONT_GATE] 큰집 닭강정               → 큰집닭강정 광운대점                     | 349m | 분식
+[FRONT_GATE] 영축산 정육식당             → 영축산정육식당                        | 306m | 한식
+[FRONT_GATE] 진미통닭                 → 진미통닭                           | 262m | 양식
+[FRONT_GATE] 로스2000               → 로스2000                         | 234m | 한식
+[FRONT_GATE] 썬더치킨                 → 썬더치킨 광운대점                      | 249m | 양식
+[FRONT_GATE] 종로전집                 → 종로전집                           | 201m | 한식
+[FRONT_GATE] 맛불                   → 맛불                             | 218m | 한식
+[FRONT_GATE] 수해복마라탕               → 수해복마라탕 광운대점                    | 219m | 중식
+[FRONT_GATE] 더진국                  → 더진국 광운대점                       | 200m | 한식
+[FRONT_GATE] 고씨네 카레전문점            → 고씨네 광운대점                       | 200m | 아시안
+[FRONT_GATE] 화로상회                 → 화로상회 광운대점                      | 187m | 한식
+[FRONT_GATE] 부리또잇                 → 부리또잇                           | 187m | 양식
+[FRONT_GATE] 재리스토스트&빙수바보빙식이 광운대점  → 재리스토스트&빙수바보빙식이 광운대점            | 198m | 카페
+[FRONT_GATE] 신연마라탕                → 신연마라탕                          | 179m | 중식
+[FRONT_GATE] 민들레뜨락2               → 민들레뜨락2                         | 166m | 한식
+[FRONT_GATE] 푸른스시                 → 푸른스시                           | 169m | 일식
+[FRONT_GATE] 일심텐동                 → 일심텐동 광운대점                      | 155m | 일식
+[FRONT_GATE] 디델리라볶이               → 디델리 광운대점                       | 155m | 분식
+[FRONT_GATE] 마루덮밥                 → 마루                             | 152m | 일식
+[FRONT_GATE] 윤스쿡                  → 윤스쿡                            | 143m | 한식
+[FRONT_GATE] 한끼철판                 → 한끼철판 광운대점                      | 136m | 일식
+[FRONT_GATE] 장수국수                 → 장수국수 광운대점                      | 138m | 한식
+[FRONT_GATE] 지지고                  → 지지고 광운대점                       | 134m | 한식
+[FRONT_GATE] 광운커피                 → 광운커피                           | 128m | 카페
+[FRONT_GATE] 프랭크버거                → 프랭크버거 광운대점                     | 128m | 양식
+[FRONT_GATE] 팔팔부대찌개               → 팔팔전어횟집                         | 124m | 한식
+[FRONT_GATE] 카츠백                  → 카츠백 월계점                        | 252m | 일식
+[FRONT_GATE] 민들레국시                → 민들레국시                          | 252m | 한식
+[FRONT_GATE] 중화 호반 닭갈비 막국수        → 중화호반닭갈비 광운대점                   | 374m | 한식
+[FRONT_GATE] 전주밥상                 → 전주밥상쌈밥                         | 432m | 한식
+[FRONT_GATE] 꽁꽁 삼겹살 차돌박이          → 꽁꽁삼겹살차돌박이 석계2호점                | 566m | 한식
+[FRONT_GATE] 또와집순대국               → 또와집순대국                         | 467m | 한식
+[BACK_GATE] 튀맥                   → 튀맥                             | 432m | 튀김류
+[BACK_GATE] 서선생김치찜               → 서선생김치찜                         | 398m | 한식
+[BACK_GATE] 한라산 감자탕              → 한라산감자탕                         | 409m | 한식
+[BACK_GATE] 국수천왕                 → 국수천왕 광운대점                      | 350m | 한식
+[BACK_GATE] 한그릇                  → 한그릇                            | 315m | 한식
+[BACK_GATE] DAYLONG COFFEE       → 데이롱카페 광운대점                     | 314m | 카페
+[BACK_GATE] 별난주점                 → 별난주점 광운대점                      | 274m | 주점
+[BACK_GATE] 꽃제비칼국수               → 꽃제비칼국수                         | 258m | 한식
+[BACK_GATE] 밥은화                  → 밥은화 광운대본점                      | 252m | 한식
+[BACK_GATE] 하이레                  → 하이레                            | 210m | 한식
+[BACK_GATE] 아, 그집                → 아 그집                           | 285m | 한식
+[BACK_GATE] CORD.jr              → CORD Jr.                       | 285m | 한식
+[BACK_GATE] 치킨플러스                → 치킨플러스 월계점                      | 259m | 양식
+[BACK_GATE] 후문식당                 → 후문식당                           | 239m | 한식
+[BACK_GATE] 천년초칼국수               → 천년초우리밀칼국수                      | 366m | 한식
+[BACK_GATE] 월계돈                  → 월계돈                            | 364m | 한식
+[BACK_GATE] 일심해장국                → 일심해장국 월계점                      | 406m | 한식
+[BACK_GATE] 볼카츠마켙                → 김바삭군의 볼카츠마켙 광운대점               | 118m | 일식
+[BACK_GATE] 카페베르데                → 카페베르데                          | 124m | 카페
+[BACK_GATE] 이층집                  → 이층집                            | 136m | 한식
+[BACK_GATE] 병천순대                 → 병천청년순대 광운대점                    | 135m | 한식
+[BACK_GATE] 경대컵밥                 → 경대컵밥 광운대점                      | 172m | 분식
+[BACK_GATE] 소담밥상                 → 소담밥상                           | 135m | 한식
+[BACK_GATE] 쉐프밥버거                → 쉐프밥버거 광운대점                     | 119m | 양식
+[BACK_GATE] 미식성                  → 미식성                            | 156m | 한식
+[BACK_GATE] 빠말                   → 빠말                             | 161m | 한식
+[BACK_GATE] 스시덤                  → 스시덤                            | 177m | 일식
+[BACK_GATE] 1일1잔                 → 1일1잔                           | 178m | 주점
+[BACK_GATE] 이찌마 김치               → 이찌마 김치                         | 172m | 한식
+[BACK_GATE] 목포홍탁                 → 목포홍탁                           | 185m | 한식
+[BACK_GATE] 갤러리eat               → 갤러리eat                         | 239m | 한식
+[BACK_GATE] 진심카츠                 → 진심카츠                           | 140m | 일식
+[KWANGWOON_STATION] 와플대학                 → 와플대학 광운대캠퍼스                    | 428m | 카페
+[BACK_GATE] 청계 빨간집               → 청계 빨간집                         | manualm | 한식
+[BACK_GATE] 우우즈베이커리              → 우우즈베이커리                        | manualm | 카페
+[KWANGWOON_STATION] 정담소반                 → 정담소반                           | manualm | 한식
+[BACK_GATE] 포 레오                 → 포 레오                           | manualm | 아시안
+[BACK_GATE] 용기사 식당               → 용기사 식당                         | manualm | 한식

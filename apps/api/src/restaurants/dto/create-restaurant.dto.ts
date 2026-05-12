@@ -71,6 +71,24 @@ export class CreateRestaurantDto {
   isPartner?: boolean;
 
   @ApiPropertyOptional({
+    example: 'https://cdn.example.com/cover/abc.jpg',
+    description: '식당 대표 사진 URL (S3 업로드 결과)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  coverImageUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://bondosirak.com/menu',
+    description: '체인점 등 공식 메뉴 페이지 URL',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  externalMenuUrl?: string;
+
+  @ApiPropertyOptional({
     type: [PartnershipInputDto],
     description: '제휴 단과대학 + Instagram URL 목록 (식당당 단과대학별 1개)',
   })

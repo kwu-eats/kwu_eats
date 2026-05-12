@@ -55,3 +55,12 @@ apps/web/playwright/.cache/
 .cache/
 tmp/
 temp/
+
+# 메뉴판 OCR 원본 (대용량 로컬 참조 자료)
+docs/메뉴판 사진/
+docs/메뉴판 사진 정문/
+docs/기술과 경영_메뉴판 정리.xlsx
+
+# Python bytecode
+__pycache__/
+*.pyc

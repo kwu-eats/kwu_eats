@@ -1,8 +1,8 @@
 'use client';
 
+import type { RestaurantListItem } from '@pangchelin/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronRight, Search, X } from 'lucide-react';
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 import { useRestaurants } from '@/hooks/queries/useRestaurants';
@@ -10,9 +10,11 @@ import { useRestaurants } from '@/hooks/queries/useRestaurants';
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** 검색 결과 선택 시 호출. 미지정이면 기본 동작(상세 페이지로 이동) 안 함 — 호출 측이 처리. */
+  onSelect?: (restaurant: RestaurantListItem) => void;
 }
 
-export function SearchSheet({ open, onClose }: Props) {
+export function SearchSheet({ open, onClose, onSelect }: Props) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   // 검색은 필터와 무관하게 전체 식당에서 — 별도 쿼리 키
@@ -102,10 +104,13 @@ export function SearchSheet({ open, onClose }: Props) {
                 <ul className="divide-y divide-border">
                   {filtered.map((r) => (
                     <li key={r.id}>
-                      <Link
-                        href={`/restaurants/${r.id}`}
-                        onClick={onClose}
-                        className="flex items-center justify-between gap-3 px-4 py-4 active:bg-muted"
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelect?.(r);
+                          onClose();
+                        }}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left active:bg-muted"
                       >
                         <div className="min-w-0 flex-1">
                           <h3 className="truncate text-sm font-semibold text-ink-primary">
@@ -120,7 +125,7 @@ export function SearchSheet({ open, onClose }: Props) {
                           strokeWidth={1.75}
                           className="flex-shrink-0 text-ink-muted"
                         />
-                      </Link>
+                      </button>
                     </li>
                   ))}
                 </ul>

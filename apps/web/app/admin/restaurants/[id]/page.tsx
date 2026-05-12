@@ -45,6 +45,8 @@ export default function EditRestaurantPage() {
       longitude: values.longitude,
       businessHours: buildBusinessHours(values),
       isPartner: values.isPartner,
+      coverImageUrl: values.coverImageUrl || undefined,
+      externalMenuUrl: values.externalMenuUrl || undefined,
       partnerships: values.isPartner ? values.partnerships ?? [] : [],
       categoryIds: values.categoryIds,
     });
@@ -123,8 +125,22 @@ export default function EditRestaurantPage() {
 
 function buildBusinessHours(values: RestaurantFormValues) {
   const result: Record<string, unknown> = {};
-  for (const [day, hours] of Object.entries(values.businessHours)) {
-    result[day] = hours.closed ? { closed: true } : { open: hours.open, close: hours.close };
+  const { note, ...days } = values.businessHours;
+  for (const [day, hours] of Object.entries(days)) {
+    if (hours.closed) {
+      result[day] = { closed: true };
+      continue;
+    }
+    const dayResult: Record<string, string> = {
+      open: hours.open ?? '',
+      close: hours.close ?? '',
+    };
+    if (hours.breakStart && hours.breakEnd) {
+      dayResult.breakStart = hours.breakStart;
+      dayResult.breakEnd = hours.breakEnd;
+    }
+    result[day] = dayResult;
   }
+  if (note && note.trim()) result.note = note.trim();
   return result;
 }

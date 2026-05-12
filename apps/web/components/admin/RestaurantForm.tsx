@@ -38,6 +38,8 @@ const dayHoursSchema = z.object({
   closed: z.boolean().default(false),
   open: z.string().optional(),
   close: z.string().optional(),
+  breakStart: z.string().optional(),
+  breakEnd: z.string().optional(),
 });
 
 const menuRowSchema = z.object({
@@ -57,6 +59,7 @@ const partnershipRowSchema = z.object({
     'ELECTRONICS_INFO',
     'HUMANITIES_SOCIAL',
     'POLICY_LAW',
+    'FREE_MAJOR',
   ]),
   instagramUrl: z
     .string()
@@ -74,8 +77,12 @@ const restaurantSchema = z.object({
   businessHours: z.object({
     mon: dayHoursSchema, tue: dayHoursSchema, wed: dayHoursSchema,
     thu: dayHoursSchema, fri: dayHoursSchema, sat: dayHoursSchema, sun: dayHoursSchema,
+    /** 격주 휴무 등 자유 텍스트 비고 */
+    note: z.string().optional(),
   }),
   isPartner: z.boolean().default(false),
+  coverImageUrl: z.string().optional(),
+  externalMenuUrl: z.string().optional(),
   partnerships: z.array(partnershipRowSchema).default([]),
   categoryIds: z.array(z.string()).default([]),
   menus: z.array(menuRowSchema).default([]),
@@ -195,6 +202,12 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
     if (!token) return;
     const res = await adminUploadImage(file, token);
     setValue(`menus.${index}.imageUrl`, res.url);
+  }
+
+  async function handleCoverImageUpload(file: File) {
+    if (!token) return;
+    const res = await adminUploadImage(file, token);
+    setValue('coverImageUrl', res.url);
   }
 
   return (
@@ -356,14 +369,83 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
         />
       </div>
 
+      {/* 대표 사진 */}
+      <div className={sectionClass}>
+        <h2 className="text-sm font-semibold text-ink-primary">대표 사진</h2>
+        <p className="text-xs text-ink-muted">
+          식당 카드와 상세 페이지 상단에 표시됩니다. 없으면 대표 메뉴 사진이 대신 사용돼요.
+        </p>
+        {watch('coverImageUrl') ? (
+          <div className="flex items-start gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={watch('coverImageUrl') as string}
+              alt="대표 사진 미리보기"
+              className="h-32 w-32 flex-shrink-0 rounded-lg object-cover"
+            />
+            <div className="flex flex-col gap-2">
+              <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-lg border border-border bg-muted px-3 text-xs font-medium text-ink-body hover:bg-muted/80">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleCoverImageUpload(file);
+                  }}
+                />
+                다른 사진으로 교체
+              </label>
+              <button
+                type="button"
+                onClick={() => setValue('coverImageUrl', '')}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-red-200 px-3 text-xs font-medium text-red-500 hover:bg-red-50"
+              >
+                사진 제거
+              </button>
+            </div>
+          </div>
+        ) : (
+          <label className="flex h-32 w-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-muted/40 text-xs text-ink-muted hover:bg-muted/60">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleCoverImageUpload(file);
+              }}
+            />
+            <span className="text-2xl">＋</span>
+            <span>사진 추가</span>
+          </label>
+        )}
+      </div>
+
+      {/* 공식 메뉴 URL (체인점용) */}
+      <div className={sectionClass}>
+        <h2 className="text-sm font-semibold text-ink-primary">공식 메뉴 URL (체인점 선택)</h2>
+        <p className="text-xs text-ink-muted">
+          체인점이거나 공식 사이트에 메뉴가 있는 경우 URL 입력. 식당 상세 페이지에 &quot;공식 메뉴 보기&quot; 버튼이 노출됩니다.
+        </p>
+        <input
+          type="url"
+          placeholder="https://bondosirak.com/menu"
+          {...register('externalMenuUrl')}
+          className={inputClass}
+        />
+      </div>
+
       {/* 영업시간 */}
       <div className={sectionClass}>
         <h2 className="text-sm font-semibold text-ink-primary">영업시간</h2>
         <div className="space-y-2">
           {DAYS.map(({ key, label }) => {
             const closed = watch(`businessHours.${key}.closed`);
+            const breakStart = watch(`businessHours.${key}.breakStart`);
+            const hasBreak = !!breakStart;
             return (
-              <div key={key} className="flex items-center gap-3">
+              <div key={key} className="flex flex-wrap items-center gap-3">
                 <span className="w-6 shrink-0 text-sm font-medium text-ink-body">{label}</span>
                 <Controller
                   control={control}
@@ -393,12 +475,64 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
                       {...register(`businessHours.${key}.close`)}
                       className="h-8 rounded-lg border border-border bg-muted px-2 text-sm text-ink-body focus:border-primary-500 focus:outline-none"
                     />
+                    {!hasBreak ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValue(`businessHours.${key}.breakStart`, '15:00');
+                          setValue(`businessHours.${key}.breakEnd`, '17:00');
+                        }}
+                        className="text-xs text-primary-500 hover:text-primary-600"
+                      >
+                        + 브레이크
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 rounded-lg bg-muted/60 px-2 py-1 text-xs text-ink-muted">
+                        <span>브레이크</span>
+                        <input
+                          type="time"
+                          {...register(`businessHours.${key}.breakStart`)}
+                          className="h-7 rounded border border-border bg-surface px-1.5 text-xs text-ink-body focus:border-primary-500 focus:outline-none"
+                        />
+                        <span>~</span>
+                        <input
+                          type="time"
+                          {...register(`businessHours.${key}.breakEnd`)}
+                          className="h-7 rounded border border-border bg-surface px-1.5 text-xs text-ink-body focus:border-primary-500 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setValue(`businessHours.${key}.breakStart`, '');
+                            setValue(`businessHours.${key}.breakEnd`, '');
+                          }}
+                          aria-label="브레이크 제거"
+                          className="text-ink-muted hover:text-ink-body"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
                   </>
                 )}
                 {closed && <span className="text-sm text-ink-muted">휴무일</span>}
               </div>
             );
           })}
+        </div>
+
+        {/* 비고 — 격주 휴무 등 정형화하기 어려운 메모 */}
+        <div className="pt-1">
+          <label className={labelClass}>비고 (선택)</label>
+          <input
+            type="text"
+            {...register('businessHours.note')}
+            placeholder="예: 둘째/넷째 토요일 휴무, 사장님 일정에 따라 변동"
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-ink-muted">
+            격주 휴무처럼 위 표로 표현 못 하는 정보는 여기에 자유롭게 적어주세요. 식당 상세 페이지에 그대로 노출됩니다.
+          </p>
         </div>
       </div>
 
@@ -453,6 +587,7 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
                       <option value="ELECTRONICS_INFO">전자정보공과대학</option>
                       <option value="HUMANITIES_SOCIAL">인문사회과학대학</option>
                       <option value="POLICY_LAW">정책법학대학</option>
+                      <option value="FREE_MAJOR">자유전공학부</option>
                     </select>
                     <button
                       type="button"

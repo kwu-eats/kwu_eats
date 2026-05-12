@@ -40,12 +40,14 @@ interface RestaurantMarkerProps {
 
 function buildContent(isOpen: boolean, isPartner: boolean, isSelected: boolean): HTMLElement {
   const color = isOpen ? '#D85A30' : '#8A7D6E';
-  const size = isSelected ? 36 : 30;
+  // 선택 시 핀 크기 키움(30→38) + 외곽에 흰 링 + drop shadow. 어두운 색 사용 안 함.
+  const size = isSelected ? 38 : 30;
   const shadow = isSelected
-    ? `0 0 0 4px ${color}40, 0 2px 8px rgba(0,0,0,0.3)`
+    ? '0 0 0 3px white, 0 5px 12px rgba(0,0,0,0.35)'
     : '0 2px 6px rgba(0,0,0,0.25)';
 
   // 44px 최소 탭 영역을 위해 wrapper를 넉넉히
+  // 선택된 마커가 다른 마커 위에 떠 보이도록 z-index 상향
   const wrapper = document.createElement('div');
   wrapper.style.cssText = [
     'display:flex',
@@ -57,7 +59,9 @@ function buildContent(isOpen: boolean, isPartner: boolean, isSelected: boolean):
     'min-height:44px',
     'padding-bottom:2px',
     'transition:transform 0.15s ease',
-  ].join(';');
+    isSelected ? 'z-index:10' : 'z-index:1',
+    'position:relative',
+  ].filter(Boolean).join(';');
 
   const pin = document.createElement('div');
   pin.style.cssText = [
@@ -70,7 +74,7 @@ function buildContent(isOpen: boolean, isPartner: boolean, isSelected: boolean):
     'align-items:center',
     'justify-content:center',
     `box-shadow:${shadow}`,
-    'transition:box-shadow 0.2s,width 0.15s,height 0.15s',
+    'transition:box-shadow 0.2s,width 0.2s,height 0.2s',
   ].join(';');
 
   if (isPartner) {

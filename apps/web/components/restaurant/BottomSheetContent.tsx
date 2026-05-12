@@ -3,15 +3,21 @@
 import type { RestaurantListItem } from '@pangchelin/types';
 import { RotateCcw } from 'lucide-react';
 
+import { CategoryChipsBar } from '@/components/filters/CategoryChipsBar';
 import { useFilterStore } from '@/lib/stores/filterStore';
 import { useSheetStore } from '@/lib/stores/sheetStore';
 
 import { RestaurantListItem as RestaurantCard } from './RestaurantListItem';
+import { WelcomeStats } from './WelcomeStats';
 
 interface Props {
   restaurants: RestaurantListItem[];
   isLoading: boolean;
   isError: boolean;
+  // 필터/검색은 비어있지 않은데 지도 가시 영역 안에만 0건일 때 안내 메시지 분기
+  hasMoreOutsideView?: boolean;
+  // 지도 마커를 눌러 선택한 식당 id — 리스트에서 강조 표시
+  selectedId?: string | null;
 }
 
 function SkeletonCard() {
@@ -27,7 +33,13 @@ function SkeletonCard() {
   );
 }
 
-export function BottomSheetContent({ restaurants, isLoading, isError }: Props) {
+export function BottomSheetContent({
+  restaurants,
+  isLoading,
+  isError,
+  hasMoreOutsideView,
+  selectedId,
+}: Props) {
   const { snap, setSnap } = useSheetStore();
   const { zones, categoryIds, isOpen, maxPrice, reset } = useFilterStore();
   const hasActiveFilters =
@@ -52,6 +64,16 @@ export function BottomSheetContent({ restaurants, isLoading, isError }: Props) {
   }
 
   if (restaurants.length === 0) {
+    if (hasMoreOutsideView) {
+      return (
+        <div className="flex flex-col items-center justify-center px-6 py-16 text-ink-muted">
+          <p className="text-sm font-medium text-ink-body">
+            이 화면 안에는 식당이 없어요
+          </p>
+          <p className="mt-1 text-xs">지도를 움직이거나 줌을 줄여 보세요</p>
+        </div>
+      );
+    }
     if (hasActiveFilters) {
       return (
         <div className="flex flex-col items-center justify-center gap-4 px-6 py-16">
@@ -81,6 +103,9 @@ export function BottomSheetContent({ restaurants, isLoading, isError }: Props) {
     );
   }
 
+  // 선택·필터 없는 '신선 진입' 상태에서만 환영 메시지 노출.
+  const isFreshEntry = !selectedId && !hasActiveFilters;
+
   return (
     <div>
       {/* full 상태: 검색창 */}
@@ -94,10 +119,19 @@ export function BottomSheetContent({ restaurants, isLoading, isError }: Props) {
         </div>
       )}
 
+      {/* 신선 진입 상태 + peek/half: 인사말 + 통계 */}
+      {isFreshEntry && snap !== 'full' && <WelcomeStats />}
+
+      {/* 카테고리 빠른 필터 칩 — 항상 노출 (단 full 상태 검색 모드 외) */}
+      <CategoryChipsBar />
+
       {/* peek 상태: 첫 번째 카드 + 더보기 */}
       {snap === 'peek' ? (
         <div>
-          <RestaurantCard restaurant={restaurants[0]} />
+          <RestaurantCard
+            restaurant={restaurants[0]}
+            isSelected={restaurants[0].id === selectedId}
+          />
           {restaurants.length > 1 && (
             <button
               type="button"
@@ -112,7 +146,11 @@ export function BottomSheetContent({ restaurants, isLoading, isError }: Props) {
         /* half / full 상태: 전체 리스트 */
         <div>
           {restaurants.map((r) => (
-            <RestaurantCard key={r.id} restaurant={r} />
+            <RestaurantCard
+              key={r.id}
+              restaurant={r}
+              isSelected={r.id === selectedId}
+            />
           ))}
         </div>
       )}

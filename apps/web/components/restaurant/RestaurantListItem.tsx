@@ -3,6 +3,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { memo } from 'react';
 
+import { formatNextOpen } from '@/lib/formatNextOpen';
+
 const ZONE_LABEL: Record<string, string> = {
   FRONT_GATE: '정문',
   BACK_GATE: '후문',
@@ -12,22 +14,32 @@ const ZONE_LABEL: Record<string, string> = {
 
 interface Props {
   restaurant: RestaurantListItemType;
+  /** 지도에서 클릭해 선택된 식당이면 시각적으로 강조 */
+  isSelected?: boolean;
 }
 
-function RestaurantListItemComponent({ restaurant }: Props) {
-  const { id, name, zone, isOpen, isPartner, categories, featuredMenu } = restaurant;
+function RestaurantListItemComponent({ restaurant, isSelected = false }: Props) {
+  const { id, name, zone, isOpen, isPartner, categories, featuredMenu, nextOpenAt, coverImageUrl } =
+    restaurant;
   const category = categories[0];
+  const closedLabel = !isOpen ? formatNextOpen(nextOpenAt) || '마감' : null;
+  // 썸네일 우선순위: 대표사진 → 대표 메뉴 사진 → 이모지 fallback
+  const thumbnailUrl = coverImageUrl || featuredMenu?.imageUrl || null;
 
   return (
     <Link
       href={`/restaurants/${id}`}
-      className="flex items-center gap-3 px-4 py-3 min-h-[72px] transition-colors active:bg-primary-50"
+      className={
+        isSelected
+          ? 'flex items-center gap-3 px-4 py-3 min-h-[72px] transition-colors bg-primary-50 shadow-[inset_3px_0_0_0_#D85A30]'
+          : 'flex items-center gap-3 px-4 py-3 min-h-[72px] transition-colors active:bg-primary-50'
+      }
     >
-      {/* 썸네일 */}
+      {/* 썸네일 — 대표사진 우선, 없으면 대표 메뉴 사진 */}
       <div className="relative h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-        {featuredMenu?.imageUrl ? (
+        {thumbnailUrl ? (
           <Image
-            src={featuredMenu.imageUrl}
+            src={thumbnailUrl}
             alt={name}
             fill
             sizes="52px"
@@ -58,7 +70,7 @@ function RestaurantListItemComponent({ restaurant }: Props) {
                 : { background: 'var(--color-closed-bg)', color: 'var(--color-closed)' }
             }
           >
-            {isOpen ? '영업중' : '마감'}
+            {isOpen ? '영업중' : closedLabel}
           </span>
         </div>
 
