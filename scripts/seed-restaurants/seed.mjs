@@ -97,7 +97,6 @@ const LIST = [
   // 샐러리아 광운대점: 카카오 REST API 에 없음
   ['중화 호반 닭갈비 막국수', 'FRONT_GATE'],
   ['전주밥상', 'FRONT_GATE'],
-  ['꽁꽁 삼겹살 차돌박이', 'FRONT_GATE'],
   ['또와집순대국', 'FRONT_GATE'],
 
   // 3. 후문
