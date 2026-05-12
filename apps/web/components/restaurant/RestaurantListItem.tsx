@@ -19,10 +19,12 @@ interface Props {
 }
 
 function RestaurantListItemComponent({ restaurant, isSelected = false }: Props) {
-  const { id, name, zone, isOpen, isPartner, categories, featuredMenu, nextOpenAt } =
+  const { id, name, zone, isOpen, isPartner, categories, featuredMenu, nextOpenAt, coverImageUrl } =
     restaurant;
   const category = categories[0];
   const closedLabel = !isOpen ? formatNextOpen(nextOpenAt) || '마감' : null;
+  // 썸네일 우선순위: 대표사진 → 대표 메뉴 사진 → 이모지 fallback
+  const thumbnailUrl = coverImageUrl || featuredMenu?.imageUrl || null;
 
   return (
     <Link
@@ -33,11 +35,11 @@ function RestaurantListItemComponent({ restaurant, isSelected = false }: Props) 
           : 'flex items-center gap-3 px-4 py-3 min-h-[72px] transition-colors active:bg-primary-50'
       }
     >
-      {/* 썸네일 */}
+      {/* 썸네일 — 대표사진 우선, 없으면 대표 메뉴 사진 */}
       <div className="relative h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-        {featuredMenu?.imageUrl ? (
+        {thumbnailUrl ? (
           <Image
-            src={featuredMenu.imageUrl}
+            src={thumbnailUrl}
             alt={name}
             fill
             sizes="52px"

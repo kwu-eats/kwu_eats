@@ -8,10 +8,13 @@ import { useState } from 'react';
 interface Props {
   menus: Menu[];
   name: string;
+  /** 식당 대표 사진. 있으면 슬라이드 첫 번째로 노출 */
+  coverImageUrl?: string | null;
 }
 
-export function RestaurantHero({ menus, name }: Props) {
-  const images = menus.filter((m) => m.imageUrl).map((m) => m.imageUrl!);
+export function RestaurantHero({ menus, name, coverImageUrl }: Props) {
+  const menuImages = menus.filter((m) => m.imageUrl).map((m) => m.imageUrl!);
+  const images = coverImageUrl ? [coverImageUrl, ...menuImages] : menuImages;
   const [activeIdx, setActiveIdx] = useState(0);
 
   if (images.length === 0) {

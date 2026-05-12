@@ -48,7 +48,11 @@ export default async function RestaurantDetailPage({ params }: Props) {
     <div className="relative min-h-dvh bg-canvas pb-24">
       <DetailHeader name={restaurant.name} />
 
-      <RestaurantHero menus={restaurant.menus} name={restaurant.name} />
+      <RestaurantHero
+        menus={restaurant.menus}
+        name={restaurant.name}
+        coverImageUrl={restaurant.coverImageUrl}
+      />
 
       <div className="px-4 py-5 space-y-6">
         <RestaurantInfo restaurant={restaurant} />
