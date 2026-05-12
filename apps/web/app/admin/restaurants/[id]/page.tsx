@@ -45,6 +45,8 @@ export default function EditRestaurantPage() {
       longitude: values.longitude,
       businessHours: buildBusinessHours(values),
       isPartner: values.isPartner,
+      coverImageUrl: values.coverImageUrl || undefined,
+      externalMenuUrl: values.externalMenuUrl || undefined,
       partnerships: values.isPartner ? values.partnerships ?? [] : [],
       categoryIds: values.categoryIds,
     });

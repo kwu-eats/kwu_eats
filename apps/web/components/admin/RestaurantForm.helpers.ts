@@ -42,6 +42,8 @@ export function toFormValues(r: RestaurantWithRelations): RestaurantFormValues {
       sun: bh.sun && typeof bh.sun !== 'string' ? day('sun') : { closed: true, open: '11:00', close: '21:00' },
       note: typeof bh.note === 'string' ? bh.note : '',
     },
+    coverImageUrl: r.coverImageUrl ?? '',
+    externalMenuUrl: r.externalMenuUrl ?? '',
     isPartner: r.isPartner,
     partnerships:
       r.partnerships?.map((p) => ({
@@ -83,6 +85,8 @@ export function defaultFormValues(): RestaurantFormValues {
       note: '',
     },
     isPartner: false,
+    coverImageUrl: '',
+    externalMenuUrl: '',
     partnerships: [],
     categoryIds: [],
     menus: [],

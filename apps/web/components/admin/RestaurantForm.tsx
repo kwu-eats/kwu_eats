@@ -81,6 +81,8 @@ const restaurantSchema = z.object({
     note: z.string().optional(),
   }),
   isPartner: z.boolean().default(false),
+  coverImageUrl: z.string().optional(),
+  externalMenuUrl: z.string().optional(),
   partnerships: z.array(partnershipRowSchema).default([]),
   categoryIds: z.array(z.string()).default([]),
   menus: z.array(menuRowSchema).default([]),
@@ -200,6 +202,12 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
     if (!token) return;
     const res = await adminUploadImage(file, token);
     setValue(`menus.${index}.imageUrl`, res.url);
+  }
+
+  async function handleCoverImageUpload(file: File) {
+    if (!token) return;
+    const res = await adminUploadImage(file, token);
+    setValue('coverImageUrl', res.url);
   }
 
   return (
@@ -358,6 +366,73 @@ export function RestaurantForm({ defaultValues, onSubmit, isSubmitting, submitLa
               </div>
             );
           }}
+        />
+      </div>
+
+      {/* 대표 사진 */}
+      <div className={sectionClass}>
+        <h2 className="text-sm font-semibold text-ink-primary">대표 사진</h2>
+        <p className="text-xs text-ink-muted">
+          식당 카드와 상세 페이지 상단에 표시됩니다. 없으면 대표 메뉴 사진이 대신 사용돼요.
+        </p>
+        {watch('coverImageUrl') ? (
+          <div className="flex items-start gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={watch('coverImageUrl') as string}
+              alt="대표 사진 미리보기"
+              className="h-32 w-32 flex-shrink-0 rounded-lg object-cover"
+            />
+            <div className="flex flex-col gap-2">
+              <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-lg border border-border bg-muted px-3 text-xs font-medium text-ink-body hover:bg-muted/80">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleCoverImageUpload(file);
+                  }}
+                />
+                다른 사진으로 교체
+              </label>
+              <button
+                type="button"
+                onClick={() => setValue('coverImageUrl', '')}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-red-200 px-3 text-xs font-medium text-red-500 hover:bg-red-50"
+              >
+                사진 제거
+              </button>
+            </div>
+          </div>
+        ) : (
+          <label className="flex h-32 w-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-muted/40 text-xs text-ink-muted hover:bg-muted/60">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleCoverImageUpload(file);
+              }}
+            />
+            <span className="text-2xl">＋</span>
+            <span>사진 추가</span>
+          </label>
+        )}
+      </div>
+
+      {/* 공식 메뉴 URL (체인점용) */}
+      <div className={sectionClass}>
+        <h2 className="text-sm font-semibold text-ink-primary">공식 메뉴 URL (체인점 선택)</h2>
+        <p className="text-xs text-ink-muted">
+          체인점이거나 공식 사이트에 메뉴가 있는 경우 URL 입력. 식당 상세 페이지에 &quot;공식 메뉴 보기&quot; 버튼이 노출됩니다.
+        </p>
+        <input
+          type="url"
+          placeholder="https://bondosirak.com/menu"
+          {...register('externalMenuUrl')}
+          className={inputClass}
         />
       </div>
 
