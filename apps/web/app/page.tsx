@@ -12,6 +12,7 @@ import { ClusterPicker } from '@/components/map/ClusterPicker';
 import { KakaoMap, type KakaoMapHandle } from '@/components/map/KakaoMap';
 import { MapFloatingButtons } from '@/components/map/MapFloatingButtons';
 import { RestaurantMarker } from '@/components/map/RestaurantMarker';
+import { SelectedMarkerHighlight } from '@/components/map/SelectedMarkerHighlight';
 import { BottomSheetContent } from '@/components/restaurant/BottomSheetContent';
 import { SearchSheet } from '@/components/search/SearchSheet';
 import { useRestaurants } from '@/hooks/queries/useRestaurants';
@@ -184,6 +185,19 @@ export default function HomePage() {
           className="h-full w-full"
           onMapReady={handleMapReady}
         />
+
+        {/* 선택된 식당 마커 위에 펄스 하이라이트 — Clusterer 와 CustomOverlay 양쪽 모두 위에 표시 */}
+        {map && selectedId && (() => {
+          const selected = restaurants.find((r) => r.id === selectedId);
+          if (!selected) return null;
+          return (
+            <SelectedMarkerHighlight
+              map={map}
+              lat={selected.latitude}
+              lng={selected.longitude}
+            />
+          );
+        })()}
 
         {map &&
           !useClusterer &&
