@@ -6,10 +6,12 @@ declare namespace kakao {
       constructor(container: HTMLElement, options: MapOptions);
       setCenter(latlng: LatLng): void;
       getCenter(): LatLng;
-      setLevel(level: number, options?: { animate?: boolean }): void;
+      setLevel(level: number, options?: { animate?: boolean; anchor?: LatLng }): void;
       getLevel(): number;
       panTo(latlng: LatLng): void;
       setBounds(bounds: LatLngBounds): void;
+      getBounds(): LatLngBounds;
+      relayout(): void;
     }
 
     class LatLng {
@@ -21,6 +23,8 @@ declare namespace kakao {
     class LatLngBounds {
       constructor(sw?: LatLng, ne?: LatLng);
       extend(latlng: LatLng): void;
+      getSouthWest(): LatLng;
+      getNorthEast(): LatLng;
     }
 
     class CustomOverlay {

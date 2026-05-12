@@ -48,9 +48,9 @@ function MenuListComponent({ menus }: Props) {
       map.get(key)!.push(m);
     }
     // 각 카테고리 내부에서 추천 메뉴 먼저
-    for (const list of map.values()) {
+    map.forEach((list) => {
       list.sort((a, b) => Number(b.isSignature) - Number(a.isSignature));
-    }
+    });
     // 우선순위 정렬 (stable: 동순위는 입력 순서)
     const order = inputOrder
       .map((c, idx) => ({ c, idx, p: categoryPriority(c) }))
