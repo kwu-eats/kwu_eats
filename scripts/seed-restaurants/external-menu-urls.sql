@@ -31,6 +31,21 @@ SET "externalMenuUrl" = 'https://xn--vl2b25awylm0e.com/bbs/content.php?co_id=men
     "updatedAt" = NOW()
 WHERE name = '샐러리아 광운대점';
 
+UPDATE "Restaurant"
+SET "externalMenuUrl" = 'http://churros.dothome.co.kr/hm_board/menu/gallery.php?code=hm_menu&cate=menu4',
+    "updatedAt" = NOW()
+WHERE name = '스트릿츄러스 광운대점';
+
+UPDATE "Restaurant"
+SET "externalMenuUrl" = 'https://www.beer1900.com/board/menu',
+    "updatedAt" = NOW()
+WHERE name = '생마차 광운대점';
+
+UPDATE "Restaurant"
+SET "externalMenuUrl" = 'https://chickenplus.co.kr/CHICKEN',
+    "updatedAt" = NOW()
+WHERE name = '치킨플러스 월계점';
+
 -- 검증
 SELECT name, "externalMenuUrl" FROM "Restaurant"
 WHERE "externalMenuUrl" IS NOT NULL
