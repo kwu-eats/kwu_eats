@@ -1,17 +1,162 @@
-# 팡슐랭 운영 docker-compose
+# 팡슐랭 운영 docker-compose (EC2 + RDS 프리티어 시나리오)
 #
-# 실행:
-#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+# 가정:
+#   - EC2 t3.micro/small/medium 위에서 직접 실행
+#   - DB: RDS db.t3.micro (또는 EC2 안의 postgres 컨테이너 — postgres profile 활성화)
+#   - 이미지: 별도 레지스트리 없이 EC2 에서 직접 빌드
+#   - SSL: Let's Encrypt (Nginx) 또는 ALB/CloudFront 외부 종단
 #
-# 이미지는 ECR 에서 pull (CI 가 git SHA 태그로 push). 환경변수의
-# API_IMAGE / WEB_IMAGE 로 태그 지정. 미지정 시 :latest 사용.
+# ─── 기본 실행 (RDS 사용) ────────────────────────────────
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 #
-# DB 는 EC2 안 컨테이너가 아닌 외부 RDS 사용 → postgres 서비스 없음.
-# 마이그레이션은 별도로 실행:
+# ─── EC2 안에 postgres 함께 (RDS 안 쓰는 경우) ─────────────
 #   docker compose -f docker-compose.prod.yml --env-file .env.production \
-#     run --rm api node_modules/.bin/prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+#     --profile self-hosted-db up -d --build
+#
+# ─── 마이그레이션 + 시드 ─────────────────────────────────
+#   docker compose -f docker-compose.prod.yml --env-file .env.production \
+#     run --rm api node_modules/.bin/prisma migrate deploy \
+#     --schema=apps/api/prisma/schema.prisma
+#
+#   # 시드 SQL 일괄 적용
+#   for f in scripts/seed-restaurants/{out,partnerships,cover-images-update,business-hours-update,business-hours-update-v2,business-hours-update-v3,menus-import,py-menus-import,external-menu-urls}.sql; do
+#     [ -f "$f" ] && docker compose -f docker-compose.prod.yml --env-file .env.production \
+#       exec -T postgres psql -U "$POSTGRES_USER" "$POSTGRES_DB" < "$f"
+#   done
 
 services:
+  # ────────────────────────────────────────────────────────
+  # PostgreSQL — RDS 안 쓰는 경우만 활성화 (profile 지정)
+  # ────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: pangchelin-postgres
+    restart: always
+    profiles: [self-hosted-db]
+    env_file:
+      - .env.production
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pangchelin_postgres_data:/var/lib/postgresql/data
+    # 외부 노출 안 함 (Compose 내부 네트워크만)
+    networks:
+      - pangchelin-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # 프리티어 t3.micro 메모리 절약 (1GB RAM 가정)
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - effective_cache_size=512MB
+      - -c
+      - max_connections=50
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ────────────────────────────────────────────────────────
+  # API (NestJS)
+  # ────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: pangchelin-api
+    restart: always
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      # RDS 사용 시: .env.production 의 DATABASE_URL 그대로 사용
+      # self-hosted-db profile: postgres:5432 로 연결
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      # 프리티어 메모리 보호 — Node 힙 384MB (t3.micro 기준)
+      NODE_OPTIONS: "--max-old-space-size=384"
+      # AWS S3 (선택사항)
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    expose:
+      - "4000"
+    # postgres profile 활성화 시 자동 대기. RDS 사용 시엔 무시됨.
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+    networks:
+      - pangchelin-prod
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ────────────────────────────────────────────────────────
+  # Web (Next.js standalone)
+  # ────────────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # NEXT_PUBLIC_* 는 빌드 시 인라인 — 빌드 후 환경변수 변경해도 반영 안 됨
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+        NEXT_PUBLIC_KAKAO_MAP_KEY: ${KAKAO_MAP_KEY}
+    container_name: pangchelin-web
+    restart: always
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    expose:
+      - "3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - pangchelin-prod
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ────────────────────────────────────────────────────────
+  # Nginx (리버스 프록시 + SSL 종단)
+  # ALB/CloudFront 외부 종단 사용 시 443 블록 비활성화 가능
+  # ────────────────────────────────────────────────────────
   nginx:
     image: nginx:alpine
     container_name: pangchelin-nginx
@@ -22,7 +167,7 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
-      # Let's Encrypt 사용 시 certbot 볼륨 (CloudFront 가 SSL 종단하면 불필요)
+      # Let's Encrypt 사용 시 (certbot)
       - ./docker/nginx/certbot/conf:/etc/letsencrypt:ro
       - ./docker/nginx/certbot/www:/var/www/certbot:ro
     depends_on:
@@ -38,72 +183,8 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  api:
-    image: ${API_IMAGE:-pangchelin-api:latest}
-    container_name: pangchelin-api
-    restart: always
-    expose:
-      - "4000"
-    environment:
-      NODE_ENV: production
-      PORT: "4000"
-      DATABASE_URL: ${DATABASE_URL}
-      JWT_SECRET: ${JWT_SECRET}
-      AWS_REGION: ${AWS_REGION}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      CORS_ORIGIN: ${CORS_ORIGIN}
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:4000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    networks:
-      - pangchelin-prod
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    # CloudWatch 로 직접 보낼 때는 위 logging 을 다음으로 교체:
-    # logging:
-    #   driver: awslogs
-    #   options:
-    #     awslogs-region: ap-northeast-2
-    #     awslogs-group: /ec2/pangchelin
-    #     awslogs-stream-prefix: api
-    #     awslogs-create-group: "true"
-
-  web:
-    image: ${WEB_IMAGE:-pangchelin-web:latest}
-    container_name: pangchelin-web
-    restart: always
-    expose:
-      - "3000"
-    environment:
-      NODE_ENV: production
-      PORT: "3000"
-      HOSTNAME: 0.0.0.0
-      # NEXT_PUBLIC_* 는 빌드 시점 인라인 → 런타임에서는 영향 없음
-      # (값을 바꾸려면 새 이미지 빌드 + 배포 필요)
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    depends_on:
-      api:
-        condition: service_healthy
-    networks:
-      - pangchelin-prod
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+volumes:
+  pangchelin_postgres_data:
 
 networks:
   pangchelin-prod:
