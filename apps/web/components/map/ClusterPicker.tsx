@@ -3,7 +3,7 @@
 import type { RestaurantListItem } from '@pangchelin/types';
 import { X } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { formatNextOpen } from '@/lib/formatNextOpen';
 
@@ -69,59 +69,82 @@ export function ClusterPicker({ open, restaurants, onSelect, onClose }: Props) {
         {/* 리스트 — 최대 60vh 까지, 그 이상은 스크롤 */}
         <ul className="max-h-[60vh] overflow-y-auto divide-y divide-border">
           {restaurants.map((r) => (
-            <li key={r.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(r.id)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:bg-primary-50"
-              >
-                <div className="relative h-[44px] w-[44px] flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-                  {r.featuredMenu?.imageUrl ? (
-                    <Image
-                      src={r.featuredMenu.imageUrl}
-                      alt={r.name}
-                      fill
-                      sizes="44px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-lg text-ink-subtle">
-                      🍽
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-[14px] font-semibold text-ink-primary">
-                      {r.name}
-                    </span>
-                    {r.isPartner && (
-                      <span className="flex-shrink-0 rounded-full bg-accent-100 px-1.5 py-0.5 text-[10px] font-semibold text-accent-600">
-                        제휴
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-1 text-[12px] text-ink-muted">
-                    {r.categories[0] && (
-                      <>
-                        <span>{r.categories[0].name}</span>
-                        <span>·</span>
-                      </>
-                    )}
-                    <span>{ZONE_LABEL[r.zone] ?? r.zone}</span>
-                    <span>·</span>
-                    <span className={r.isOpen ? 'text-success' : 'text-ink-muted'}>
-                      {r.isOpen
-                        ? '영업중'
-                        : formatNextOpen(r.nextOpenAt) || '마감'}
-                    </span>
-                  </div>
-                </div>
-              </button>
-            </li>
+            <ClusterRow key={r.id} restaurant={r} onSelect={onSelect} />
           ))}
         </ul>
       </div>
     </div>
+  );
+}
+
+interface RowProps {
+  restaurant: RestaurantListItem;
+  onSelect: (id: string) => void;
+}
+
+// 클러스터 리스트 행 — 썸네일 후보 체인은 RestaurantListItem 과 동일하게
+// coverImageUrl → featuredMenu.imageUrl → public/restaurants 정적 매칭 → 🍽 fallback.
+function ClusterRow({ restaurant: r, onSelect }: RowProps) {
+  const candidates = [
+    r.coverImageUrl,
+    r.featuredMenu?.imageUrl,
+    `/restaurants/${encodeURIComponent(r.name)}.jpg`,
+  ].filter((u): u is string => Boolean(u));
+  const [thumbIdx, setThumbIdx] = useState(0);
+  const thumbnailUrl = candidates[thumbIdx] ?? null;
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onSelect(r.id)}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:bg-primary-50"
+      >
+        <div className="relative h-[44px] w-[44px] flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+          {thumbnailUrl ? (
+            <Image
+              key={thumbnailUrl}
+              src={thumbnailUrl}
+              alt={r.name}
+              fill
+              sizes="44px"
+              className="object-cover"
+              onError={() => setThumbIdx((i) => i + 1)}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-lg text-ink-subtle">
+              🍽
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-[14px] font-semibold text-ink-primary">
+              {r.name}
+            </span>
+            {r.isPartner && (
+              <span className="flex-shrink-0 rounded-full bg-accent-100 px-1.5 py-0.5 text-[10px] font-semibold text-accent-600">
+                제휴
+              </span>
+            )}
+          </div>
+          <div className="mt-0.5 flex items-center gap-1 text-[12px] text-ink-muted">
+            {r.categories[0] && (
+              <>
+                <span>{r.categories[0].name}</span>
+                <span>·</span>
+              </>
+            )}
+            <span>{ZONE_LABEL[r.zone] ?? r.zone}</span>
+            <span>·</span>
+            <span className={r.isOpen ? 'text-success' : 'text-ink-muted'}>
+              {r.isOpen
+                ? '영업중'
+                : formatNextOpen(r.nextOpenAt) || '마감'}
+            </span>
+          </div>
+        </div>
+      </button>
+    </li>
   );
 }
