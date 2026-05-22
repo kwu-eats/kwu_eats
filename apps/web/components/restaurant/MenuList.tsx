@@ -2,7 +2,6 @@
 
 import type { Menu, MenuPriceOption } from '@pangchelin/types';
 import { Search } from 'lucide-react';
-import Image from 'next/image';
 import { memo, useMemo, useRef, useState } from 'react';
 
 interface Props {
@@ -152,40 +151,22 @@ function MenuListComponent({ menus }: Props) {
 
       <ul className="divide-y divide-border">
         {visibleMenus.map((menu) => (
-          <li key={menu.id} className="flex items-center gap-3 py-3">
-            {/* 썸네일 */}
-            <div className="relative flex-shrink-0 w-[52px] h-[52px] rounded-md overflow-hidden bg-muted">
-              {menu.imageUrl ? (
-                <Image
-                  src={menu.imageUrl}
-                  alt={menu.name}
-                  fill
-                  className="object-cover"
-                  sizes="52px"
-                />
-              ) : (
-                <div className="w-full h-full bg-muted" />
+          <li key={menu.id} className="py-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-body font-medium text-ink-primary truncate">
+                {menu.name}
+              </span>
+              {menu.isSignature && (
+                <span className="flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-body font-medium bg-primary-50 text-primary-600">
+                  추천
+                </span>
               )}
             </div>
-
-            {/* 이름 + 가격 */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-body font-medium text-ink-primary truncate">
-                  {menu.name}
-                </span>
-                {menu.isSignature && (
-                  <span className="flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-body font-medium bg-primary-50 text-primary-600">
-                    추천
-                  </span>
-                )}
-              </div>
-              <span className="mt-0.5 block text-base font-accent font-semibold text-primary-500">
-                {menu.priceOptions && menu.priceOptions.length > 0
-                  ? formatPriceOptions(menu.priceOptions)
-                  : formatPrice(menu.price)}
-              </span>
-            </div>
+            <span className="mt-0.5 block text-base font-accent font-semibold text-primary-500">
+              {menu.priceOptions && menu.priceOptions.length > 0
+                ? formatPriceOptions(menu.priceOptions)
+                : formatPrice(menu.price)}
+            </span>
           </li>
         ))}
       </ul>

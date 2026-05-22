@@ -1,7 +1,9 @@
+'use client';
+
 import type { RestaurantListItem as RestaurantListItemType } from '@pangchelin/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { memo } from 'react';
+import { memo, useState } from 'react';
 
 import { formatNextOpen } from '@/lib/formatNextOpen';
 
@@ -23,8 +25,15 @@ function RestaurantListItemComponent({ restaurant, isSelected = false }: Props) 
     restaurant;
   const category = categories[0];
   const closedLabel = !isOpen ? formatNextOpen(nextOpenAt) || '마감' : null;
-  // 썸네일 우선순위: 대표사진 → 대표 메뉴 사진 → 이모지 fallback
-  const thumbnailUrl = coverImageUrl || featuredMenu?.imageUrl || null;
+  // 썸네일 우선순위: 대표사진 → 대표 메뉴 사진 → public/restaurants 이름 기반 정적 이미지 → 이모지.
+  // DB 의 coverImageUrl 이 비어있는 식당이 많아 마지막 정적 매칭으로 일관된 이미지 노출.
+  const candidates = [
+    coverImageUrl,
+    featuredMenu?.imageUrl,
+    `/restaurants/${encodeURIComponent(name)}.jpg`,
+  ].filter((u): u is string => Boolean(u));
+  const [thumbIdx, setThumbIdx] = useState(0);
+  const thumbnailUrl = candidates[thumbIdx] ?? null;
 
   return (
     <Link
@@ -39,11 +48,15 @@ function RestaurantListItemComponent({ restaurant, isSelected = false }: Props) 
       <div className="relative h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-lg bg-muted">
         {thumbnailUrl ? (
           <Image
+            // key 를 src 와 함께 줘서 후보가 바뀔 때 next/image 가 새 요청을 보내도록 함
+            key={thumbnailUrl}
             src={thumbnailUrl}
             alt={name}
             fill
             sizes="52px"
             className="object-cover"
+            // 후보 이미지가 404 등으로 실패하면 다음 후보로 자동 전환
+            onError={() => setThumbIdx((i) => i + 1)}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xl text-ink-subtle">
