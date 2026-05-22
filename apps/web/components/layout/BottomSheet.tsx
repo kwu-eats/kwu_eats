@@ -3,6 +3,7 @@
 import {
   animate,
   motion,
+  useDragControls,
   useMotionValue,
   useTransform,
 } from 'framer-motion';
@@ -38,6 +39,8 @@ export function BottomSheet({ children }: BottomSheetProps) {
     typeof window !== 'undefined' ? window.innerHeight : 800,
   );
   const y = useMotionValue(SAFE_BELOW_VIEWPORT);
+  // 드래그는 핸들에서만 시작 — 안쪽 리스트 스크롤이 시트 드래그로 이어지는 충돌 방지
+  const dragControls = useDragControls();
 
   // mount 및 snap 변경 시 spring 애니메이션 — 첫 mount 도 아래에서 위로 올라옴
   useEffect(() => {
@@ -84,6 +87,8 @@ export function BottomSheet({ children }: BottomSheetProps) {
         className="fixed inset-x-0 bottom-0 z-30 flex flex-col bg-surface rounded-t-xl shadow-sheet"
         style={{ y, height: '100dvh' }}
         drag="y"
+        dragControls={dragControls}
+        dragListener={false}
         dragConstraints={{
           top: getSnapY('full', windowHeight.current),
           bottom: getSnapY('peek', windowHeight.current),
@@ -91,18 +96,21 @@ export function BottomSheet({ children }: BottomSheetProps) {
         dragElastic={0.1}
         onDragEnd={handleDragEnd}
       >
-        {/* 드래그 핸들 */}
-        <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
+        {/* 드래그 핸들 — 여기서만 시트 드래그 시작.
+            터치 영역을 넉넉히 잡아 핸들 탭이 잘 인식되도록 함. */}
+        <div
+          onPointerDown={(e) => dragControls.start(e)}
+          className="flex justify-center pt-3 pb-2 flex-shrink-0 cursor-grab touch-none active:cursor-grabbing"
+        >
           <div className="h-1 w-9 rounded-full bg-border-strong" />
         </div>
 
-        {/* 콘텐츠 영역 (스크롤) — maxHeight 로 viewport 가시 영역에 맞춤.
-            half 에서도 touchAction: pan-y 로 스크롤 허용 (peek 만 드래그 우선) */}
+        {/* 콘텐츠 영역 (스크롤) — maxHeight 로 viewport 가시 영역에 맞춤. */}
         <motion.div
           className="overflow-y-auto overscroll-contain pb-safe"
           style={{
             maxHeight: scrollMaxHeight,
-            touchAction: snap === 'peek' ? 'none' : 'pan-y',
+            touchAction: 'pan-y',
           }}
         >
           {children}
