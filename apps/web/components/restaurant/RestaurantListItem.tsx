@@ -27,10 +27,12 @@ function RestaurantListItemComponent({ restaurant, isSelected = false }: Props) 
   const closedLabel = !isOpen ? formatNextOpen(nextOpenAt) || '마감' : null;
   // 썸네일 우선순위: 대표사진 → 대표 메뉴 사진 → public/restaurants 이름 기반 정적 이미지 → 이모지.
   // DB 의 coverImageUrl 이 비어있는 식당이 많아 마지막 정적 매칭으로 일관된 이미지 노출.
+  // raw 식당명을 src 에 그대로 넘김 — next/image 가 자체적으로 URL 인코딩 처리.
+  // encodeURIComponent 를 미리 적용하면 이중 인코딩으로 _next/image 가 400.
   const candidates = [
     coverImageUrl,
     featuredMenu?.imageUrl,
-    `/restaurants/${encodeURIComponent(name)}.jpg`,
+    `/restaurants/${name}.jpg`,
   ].filter((u): u is string => Boolean(u));
   const [thumbIdx, setThumbIdx] = useState(0);
   const thumbnailUrl = candidates[thumbIdx] ?? null;

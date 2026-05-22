@@ -85,10 +85,11 @@ interface RowProps {
 // 클러스터 리스트 행 — 썸네일 후보 체인은 RestaurantListItem 과 동일하게
 // coverImageUrl → featuredMenu.imageUrl → public/restaurants 정적 매칭 → 🍽 fallback.
 function ClusterRow({ restaurant: r, onSelect }: RowProps) {
+  // raw 식당명 — next/image 가 자체 인코딩. encodeURIComponent 미리 적용 시 _next/image 400.
   const candidates = [
     r.coverImageUrl,
     r.featuredMenu?.imageUrl,
-    `/restaurants/${encodeURIComponent(r.name)}.jpg`,
+    `/restaurants/${r.name}.jpg`,
   ].filter((u): u is string => Boolean(u));
   const [thumbIdx, setThumbIdx] = useState(0);
   const thumbnailUrl = candidates[thumbIdx] ?? null;
