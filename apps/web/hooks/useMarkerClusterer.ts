@@ -119,8 +119,11 @@ export function useMarkerClusterer(
   onMarkerClickRef.current = onMarkerClick;
   const onClusterClickRef = useRef(onClusterClick);
   onClusterClickRef.current = onClusterClick;
-  // selectedId 변경 시 마커 이미지만 갱신하기 위해 markersData 를 ref 로 노출
-  const markersDataRef = useRef<{ marker: kakao.maps.Marker; input: ClusterMarkerInput }[]>([]);
+  // selectedId 변경 시 마커 이미지만 갱신하기 위해 markersData 를 ref 로 노출.
+  // isGhost=true 마커는 항상 투명 — tier/selectedId 변경에 영향받지 않음.
+  const markersDataRef = useRef<
+    { marker: kakao.maps.Marker; input: ClusterMarkerInput; isGhost: boolean }[]
+  >([]);
   const currentTierRef = useRef<SizeTier>('full');
   // pickImage 클로저 — selectedId 갱신 시 다른 useEffect 에서 호출
   const pickImageRef = useRef<((tier: SizeTier, m: ClusterMarkerInput) => kakao.maps.MarkerImage) | null>(null);
@@ -246,24 +249,56 @@ export function useMarkerClusterer(
     currentTierRef.current = currentTier;
     let currentGridSize = gridSizeForLevel(map.getLevel());
 
+    // 빈 1x1 투명 이미지 — ghost 마커용. ghost 는 Kakao 클러스터의 "갯수 세기" 용으로만
+    // 존재하며 화면엔 안 보임. 같은 좌표에 head 마커보다 먼저 추가해 head 가 항상 위.
+    const ghostImage = new window.kakao.maps.MarkerImage(
+      'data:image/svg+xml;utf8,' +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>',
+        ),
+      new window.kakao.maps.Size(1, 1),
+      { offset: new window.kakao.maps.Point(0, 0) },
+    );
+
     // Kakao 클러스터 click 핸들러용: Marker → 그 그룹의 모든 식당 id
+    // ghost 마커는 빈 배열을 가져 flatMap 에 영향 안 줌 (head 가 모든 id 보유)
     const markerToIds = new WeakMap<kakao.maps.Marker, string[]>();
 
-    const markersData = markers.map((m) => {
-      const marker = new window.kakao.maps.Marker({
+    // 한 건물에 N 개 식당 = head 1 + ghost (N-1).
+    // 이렇게 해야 Kakao 클러스터 버블이 "식당 수" 합계를 보여줌
+    // (그렇지 않으면 "건물 수" 만 카운트해 팝업 갯수와 어긋남).
+    const markersData = markers.flatMap((m) => {
+      const head = new window.kakao.maps.Marker({
         position: new window.kakao.maps.LatLng(m.lat, m.lng),
         image: pickImage(currentTier, m),
         opacity: m.isOpen ? 1 : CLOSED_OPACITY,
       });
-      markerToIds.set(marker, m.restaurantIds);
-      window.kakao.maps.event.addListener(marker, 'click', () => {
+      markerToIds.set(head, m.restaurantIds);
+      window.kakao.maps.event.addListener(head, 'click', () => {
         if (m.count === 1) {
           onMarkerClickRef.current?.(m.restaurantIds[0]);
         } else {
           onClusterClickRef.current?.(m.restaurantIds);
         }
       });
-      return { marker, input: m };
+
+      const ghosts: {
+        marker: kakao.maps.Marker;
+        input: ClusterMarkerInput;
+        isGhost: boolean;
+      }[] = [];
+      // count > 1 일 때만 ghost 필요. count === 1 이면 head 한 개로 충분.
+      for (let i = 1; i < m.count; i++) {
+        const ghost = new window.kakao.maps.Marker({
+          position: new window.kakao.maps.LatLng(m.lat, m.lng),
+          image: ghostImage,
+          opacity: 0,
+        });
+        markerToIds.set(ghost, []); // flatMap 에 기여 안 함
+        ghosts.push({ marker: ghost, input: m, isGhost: true });
+      }
+      // ghost 먼저 → head 마지막 (head 가 z-order 최상단, 클릭 우선)
+      return [...ghosts, { marker: head, input: m, isGhost: false }];
     });
     clusterer.addMarkers(markersData.map((d) => d.marker));
     clustererRef.current = clusterer;
@@ -290,7 +325,8 @@ export function useMarkerClusterer(
       if (nextTier !== currentTier) {
         currentTier = nextTier;
         currentTierRef.current = nextTier;
-        markersData.forEach(({ marker, input }) => {
+        markersData.forEach(({ marker, input, isGhost }) => {
+          if (isGhost) return; // ghost 는 항상 투명 유지
           marker.setImage(pickImage(nextTier, input));
         });
       }
@@ -323,7 +359,8 @@ export function useMarkerClusterer(
     const pick = pickImageRef.current;
     const tier = currentTierRef.current;
     if (!pick) return;
-    markersDataRef.current.forEach(({ marker, input }) => {
+    markersDataRef.current.forEach(({ marker, input, isGhost }) => {
+      if (isGhost) return; // ghost 는 항상 투명
       marker.setImage(pick(tier, input));
     });
   }, [selectedId]);

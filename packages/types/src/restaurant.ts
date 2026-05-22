@@ -86,6 +86,11 @@ export interface RestaurantListItem extends Restaurant {
   nextOpenAt: string | null;
   categories: import('./category').Category[];
   featuredMenu?: import('./menu').Menu | null;
+  /**
+   * 검색어(`q`) 사용 시 해당 식당에서 일치한 메뉴 (최대 3개).
+   * q 미사용 시 빈 배열.
+   */
+  matchedMenus?: { id: string; name: string; price: number }[];
 }
 
 export interface RestaurantWithRelations extends Restaurant {
@@ -125,4 +130,6 @@ export interface RestaurantQueryParams {
   maxPrice?: number;
   isPartner?: boolean;
   isOpen?: boolean;
+  /** 식당명 또는 메뉴명 부분 일치 검색 */
+  q?: string;
 }

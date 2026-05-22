@@ -169,12 +169,25 @@ export default function HomePage() {
     );
   }, [restaurants, bounds]);
 
-  // 선택된 식당이 가시 영역 밖이어도 맨 앞에 노출 (사용자가 직접 클릭한 의도 존중)
+  // 정렬 우선순위:
+  //   1) 사용자가 직접 누른 식당 (selectedId) — 가시영역 밖이어도 최상단
+  //   2) 영업중인 매장 — 페이지 첫 진입 시 사용자가 바로 갈 수 있는 곳 먼저
+  //   3) 영업 마감 (그대로 입력 순서 유지)
+  // stable sort 라 동순위 내 원래 입력 순서 보존.
   const orderedRestaurants = useMemo(() => {
-    if (!selectedId) return visibleRestaurants;
-    const selected = restaurants.find((r) => r.id === selectedId);
-    const rest = visibleRestaurants.filter((r) => r.id !== selectedId);
-    return selected ? [selected, ...rest] : rest;
+    const selected = selectedId
+      ? restaurants.find((r) => r.id === selectedId)
+      : null;
+    const pool = selected
+      ? visibleRestaurants.filter((r) => r.id !== selectedId)
+      : visibleRestaurants;
+
+    // 영업중 우선 정렬 (isOpen=true → 0, false → 1)
+    const sorted = [...pool].sort(
+      (a, b) => Number(!a.isOpen) - Number(!b.isOpen),
+    );
+
+    return selected ? [selected, ...sorted] : sorted;
   }, [visibleRestaurants, restaurants, selectedId]);
 
   // 같은 건물(좌표) 식당은 한 마커로 묶기. count===1 은 단일, 2+ 는 건물 마커.

@@ -56,4 +56,11 @@ export class QueryRestaurantDto {
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   isOpen?: boolean;
+
+  @ApiPropertyOptional({
+    description: '식당명 또는 메뉴명 검색어 (부분 일치, 대소문자 무시)',
+  })
+  @IsOptional()
+  @IsString()
+  q?: string;
 }

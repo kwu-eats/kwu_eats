@@ -1,6 +1,7 @@
 'use client';
 
 import type { Menu, MenuPriceOption } from '@pangchelin/types';
+import { Search } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useMemo, useRef, useState } from 'react';
 
@@ -64,6 +65,10 @@ function MenuListComponent({ menus }: Props) {
   const [activeTab, setActiveTab] = useState<string>(() =>
     hasTabs ? ALL_LABEL : categories[0] ?? UNCATEGORIZED_LABEL,
   );
+  // 매장 내 메뉴 검색 (이름·카테고리 부분 일치)
+  const [search, setSearch] = useState('');
+  const trimmedSearch = search.trim().toLowerCase();
+
   const tabBarRef = useRef<HTMLDivElement>(null);
 
   if (menus.length === 0) {
@@ -76,17 +81,45 @@ function MenuListComponent({ menus }: Props) {
     );
   }
 
-  // 표시할 메뉴 선택
-  const visibleMenus =
-    !hasTabs || activeTab === ALL_LABEL
+  // 표시할 메뉴 선택 — 검색어 있으면 전체 메뉴에서 매칭, 없으면 카테고리 탭 기준
+  const visibleMenus = trimmedSearch
+    ? categories
+        .flatMap((c) => grouped.get(c) ?? [])
+        .filter(
+          (m) =>
+            m.name.toLowerCase().includes(trimmedSearch) ||
+            (m.category ?? '').toLowerCase().includes(trimmedSearch),
+        )
+    : !hasTabs || activeTab === ALL_LABEL
       ? categories.flatMap((c) => grouped.get(c) ?? [])
       : grouped.get(activeTab) ?? [];
 
   return (
     <div className="space-y-3">
-      <h2 className="text-base font-body font-semibold text-ink-primary">메뉴</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-base font-body font-semibold text-ink-primary">메뉴</h2>
+        {menus.length >= 8 && (
+          // 메뉴 8개 이상일 때만 검색창 노출 — 그 이하면 한 화면에 다 보임
+          <div className="relative w-44">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="메뉴 검색"
+              className="w-full rounded-full border border-border bg-surface px-3 py-1.5 pl-8 text-xs text-ink-primary placeholder:text-ink-subtle focus:border-primary-400 focus:outline-none"
+              aria-label="이 매장 내 메뉴 검색"
+            />
+            <Search
+              size={12}
+              strokeWidth={2}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-muted"
+            />
+          </div>
+        )}
+      </div>
 
-      {hasTabs && (
+      {/* 카테고리 탭: 검색어 없을 때만 노출 (검색 중엔 전체에서 매칭) */}
+      {hasTabs && !trimmedSearch && (
         <div
           ref={tabBarRef}
           // 좌우 스크롤 가능한 탭 바. 모바일 터치 스크롤 + 스크롤바 숨김.
@@ -109,6 +142,12 @@ function MenuListComponent({ menus }: Props) {
             ))}
           </div>
         </div>
+      )}
+
+      {trimmedSearch && visibleMenus.length === 0 && (
+        <p className="py-6 text-center text-sm text-ink-muted">
+          &quot;{search}&quot; 검색 결과가 없어요
+        </p>
       )}
 
       <ul className="divide-y divide-border">
