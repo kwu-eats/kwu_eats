@@ -13,8 +13,10 @@ import { tap } from 'rxjs/operators';
  *
  * 대상 필드 (대소문자 무시, 부분 일치):
  * - password, passwordHash, currentPassword, newPassword
- * - token, accessToken, refreshToken
- * - jwt, secret, apiKey, apiSecret
+ * - token, accessToken, refreshToken, bearer
+ * - jwt, secret, apiKey, apiSecret, signature
+ * - authorization, cookie, set-cookie, session, sessionId
+ * - pin, otp, totp, mfa
  * - cardNumber, cvv, ssn
  *
  * - 본 인터셉터는 응답 body 자체는 건드리지 않음 (UI 에 정상 데이터 노출).
@@ -31,12 +33,19 @@ export class SensitiveFieldsInterceptor implements NestInterceptor {
   private static readonly SENSITIVE_KEY_PATTERNS = [
     'password',
     'token',
+    'bearer',
     'jwt',
     'secret',
     'apikey',
     'apisecret',
+    'signature',
     'authorization',
     'cookie',
+    'session',
+    'pin',
+    'otp',
+    'totp',
+    'mfa',
     'cardnumber',
     'cvv',
     'ssn',

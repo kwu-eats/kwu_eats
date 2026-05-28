@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import type { ReactNode } from 'react';
 
 import './globals.css';
 import { Providers } from './providers';
+
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
 
 export const metadata: Metadata = {
   title: '팡슐랭 — 광운대 맛집 가이드',
@@ -48,8 +51,27 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap"
           rel="stylesheet"
         />
+        {GTM_ID && (
+          <Script id="gtm-init" strategy="afterInteractive">
+            {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','${GTM_ID}');`}
+          </Script>
+        )}
       </head>
       <body className="min-h-dvh bg-canvas font-body antialiased">
+        {GTM_ID && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+              height="0"
+              width="0"
+              style={{ display: 'none', visibility: 'hidden' }}
+            />
+          </noscript>
+        )}
         <Providers>{children}</Providers>
       </body>
     </html>
