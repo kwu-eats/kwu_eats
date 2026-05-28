@@ -74,9 +74,9 @@ const RESTAURANT_LIST_SELECT = {
       imageUrl: true,
       isSignature: true,
     },
-    // 입력 순서(첫 메뉴 = 대표) 보존. Python import 시 clock_timestamp() 로 row 마다
-    // createdAt 미세 차이를 주므로 정렬 가능.
-    orderBy: { createdAt: 'asc' as const },
+    // 대표 메뉴(isSignature=true) 를 우선 노출. 없으면 입력 순서 첫 메뉴로 폴백.
+    // Python import 시 clock_timestamp() 로 row 마다 createdAt 미세 차이를 주므로 정렬 가능.
+    orderBy: [{ isSignature: 'desc' as const }, { createdAt: 'asc' as const }],
     take: 1,
   },
   ...PARTNERSHIPS_SELECT,
