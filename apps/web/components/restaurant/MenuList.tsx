@@ -1,11 +1,13 @@
 'use client';
 
 import type { Menu, MenuPriceOption } from '@pangchelin/types';
-import { Search } from 'lucide-react';
+import { ExternalLink, Search } from 'lucide-react';
 import { memo, useMemo, useRef, useState } from 'react';
 
 interface Props {
   menus: Menu[];
+  /** 체인점 등 공식 메뉴 페이지 URL. 있으면 "공식 메뉴 보기" 버튼 노출. */
+  externalMenuUrl?: string | null;
 }
 
 const UNCATEGORIZED_LABEL = '기타';
@@ -34,7 +36,21 @@ function categoryPriority(category: string): number {
   return 20;
 }
 
-function MenuListComponent({ menus }: Props) {
+function ExternalMenuButton({ url }: { url: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex min-h-touch items-center justify-center gap-1.5 rounded-xl border border-primary-200 bg-primary-50 px-4 py-2.5 text-sm font-body font-medium text-primary-600 transition-colors active:bg-primary-100"
+    >
+      <span>공식 메뉴 보기</span>
+      <ExternalLink size={14} aria-hidden />
+    </a>
+  );
+}
+
+function MenuListComponent({ menus, externalMenuUrl }: Props) {
   // 카테고리별 그룹화 → 우선순위(메인/사이드/음료) 재정렬, 동순위는 입력 순서 유지
   const { categories, grouped } = useMemo(() => {
     const inputOrder: string[] = [];
@@ -74,7 +90,16 @@ function MenuListComponent({ menus }: Props) {
     return (
       <div className="space-y-3">
         <h2 className="text-base font-body font-semibold text-ink-primary">메뉴</h2>
-        <p className="text-sm font-body text-ink-muted">아직 등록된 메뉴가 없어요</p>
+        {externalMenuUrl ? (
+          <>
+            <p className="text-sm font-body text-ink-muted">
+              공식 홈페이지에서 메뉴와 가격을 확인할 수 있어요
+            </p>
+            <ExternalMenuButton url={externalMenuUrl} />
+          </>
+        ) : (
+          <p className="text-sm font-body text-ink-muted">아직 등록된 메뉴가 없어요</p>
+        )}
         <p className="text-xs font-body text-ink-muted">{DISCLAIMER}</p>
       </div>
     );
@@ -170,6 +195,12 @@ function MenuListComponent({ menus }: Props) {
           </li>
         ))}
       </ul>
+
+      {externalMenuUrl && (
+        <div className="pt-1">
+          <ExternalMenuButton url={externalMenuUrl} />
+        </div>
+      )}
 
       <p className="pt-2 text-xs font-body text-ink-muted">{DISCLAIMER}</p>
     </div>

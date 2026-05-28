@@ -70,7 +70,7 @@ export default async function RestaurantDetailPage({ params }: Props) {
 
         <hr className="border-border" />
 
-        <MenuList menus={restaurant.menus} />
+        <MenuList menus={restaurant.menus} externalMenuUrl={restaurant.externalMenuUrl} />
       </div>
 
       <StickyBottomBar
