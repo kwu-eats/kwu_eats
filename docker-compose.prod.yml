@@ -126,6 +126,8 @@ services:
         # NEXT_PUBLIC_* 는 빌드 시 인라인 — 빌드 후 환경변수 변경해도 반영 안 됨
         NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
         NEXT_PUBLIC_KAKAO_MAP_KEY: ${KAKAO_MAP_KEY}
+        # Google Tag Manager (GA4). 미설정 시 빈 값 → layout.tsx 에서 스크립트 자동 비활성.
+        NEXT_PUBLIC_GTM_ID: ${GTM_ID:-}
     container_name: pangchelin-web
     restart: always
     env_file:
