@@ -1,13 +1,19 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, ReportType } from '@prisma/client';
+import { ReportType } from '@prisma/client';
 
+import { KafkaProducerService } from '../kafka/kafka.producer.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateReportDto } from './dto/create-report.dto';
 
+export const REPORT_SUBMITTED_TOPIC = 'report-submitted';
+
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly kafkaProducer: KafkaProducerService,
+  ) {}
 
   async create(dto: CreateReportDto) {
     this.validateSuggestedData(dto.type, dto.suggestedData);
@@ -40,7 +46,18 @@ export class ReportsService {
       }
     }
 
-    const report = await this.prisma.report.create({
+    // 유효성 검사 통과 → Kafka에 발행 (DB 저장은 Consumer가 처리)
+    await this.kafkaProducer.send(REPORT_SUBMITTED_TOPIC, {
+      ...dto,
+      receivedAt: new Date().toISOString(),
+    });
+
+    return { status: 'accepted', message: '알려주셔서 고마워요!' };
+  }
+
+  // Consumer에서 실제 DB 저장 시 호출
+  async saveToDb(dto: CreateReportDto) {
+    return this.prisma.report.create({
       data: {
         type: dto.type,
         restaurantId: dto.restaurantId,
@@ -48,7 +65,7 @@ export class ReportsService {
         reporterName: dto.reporterName,
         reporterContact: dto.reporterContact,
         content: dto.content,
-        suggestedData: dto.suggestedData as Prisma.InputJsonValue,
+        suggestedData: dto.suggestedData as never,
         imageUrls: dto.imageUrls ?? [],
       },
       select: {
@@ -57,8 +74,6 @@ export class ReportsService {
         createdAt: true,
       },
     });
-
-    return report;
   }
 
   private validateSuggestedData(

@@ -7,6 +7,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
+import { KafkaModule } from './kafka/kafka.module';
 import { CategoriesModule } from './categories/categories.module';
 import { envValidationSchema } from './config/env.validation';
 import { MenusModule } from './menus/menus.module';
@@ -28,6 +29,7 @@ import { UploadModule } from './upload/upload.module';
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     CacheModule.register({ isGlobal: true, ttl: 5 * 60 * 1000, max: 100 }),
+    KafkaModule,
     PrismaModule,
     RestaurantsModule,
     MenusModule,
