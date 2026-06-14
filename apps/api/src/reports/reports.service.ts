@@ -1,5 +1,11 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ReportType } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { Prisma, ReportType } from '@prisma/client';
 
 import { KafkaProducerService } from '../kafka/kafka.producer.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -10,6 +16,8 @@ export const REPORT_SUBMITTED_TOPIC = 'report-submitted';
 
 @Injectable()
 export class ReportsService {
+  private readonly logger = new Logger(ReportsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly kafkaProducer: KafkaProducerService,
@@ -65,7 +73,7 @@ export class ReportsService {
         reporterName: dto.reporterName,
         reporterContact: dto.reporterContact,
         content: dto.content,
-        suggestedData: dto.suggestedData as never,
+        suggestedData: dto.suggestedData as Prisma.InputJsonValue,
         imageUrls: dto.imageUrls ?? [],
       },
       select: {

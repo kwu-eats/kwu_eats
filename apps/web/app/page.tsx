@@ -24,9 +24,9 @@ import {
 } from '@/hooks/useMarkerClusterer';
 import { groupRestaurantsByLocation } from '@/lib/groupRestaurants';
 import { useFilterStore } from '@/lib/stores/filterStore';
-import { haversineKm } from '@/lib/utils/distance';
 import { useMapStore } from '@/lib/stores/mapStore';
 import { useSheetStore } from '@/lib/stores/sheetStore';
+import { haversineKm } from '@/lib/utils/distance';
 
 interface MapBounds {
   minLat: number;
@@ -166,26 +166,27 @@ export default function HomePage() {
     [setSnap],
   );
 
-  // 지도 가시 영역 내 식당만 (bounds 가 없으면 fallback 으로 전체)
-  const visibleRestaurants = useMemo(() => {
-    if (!bounds) return restaurants;
+  // 반경 필터 — 내 위치 기준 maxDistanceKm 이내만 남김.
+  // bounds 보다 먼저 적용해서 지도 마커·목록 양쪽에 동일하게 반영.
+  const radiusFilteredRestaurants = useMemo(() => {
+    if (!userLocation || !maxDistanceKm) return restaurants;
     return restaurants.filter(
+      (r) =>
+        haversineKm(userLocation.lat, userLocation.lng, r.latitude, r.longitude) <= maxDistanceKm,
+    );
+  }, [restaurants, userLocation, maxDistanceKm]);
+
+  // 지도 가시 영역 내 식당만 (bounds 가 없으면 fallback 으로 반경 결과 전체)
+  const visibleRestaurants = useMemo(() => {
+    if (!bounds) return radiusFilteredRestaurants;
+    return radiusFilteredRestaurants.filter(
       (r) =>
         r.latitude >= bounds.minLat &&
         r.latitude <= bounds.maxLat &&
         r.longitude >= bounds.minLng &&
         r.longitude <= bounds.maxLng,
     );
-  }, [restaurants, bounds]);
-
-  // 거리 필터 적용 (userLocation + maxDistanceKm 모두 있을 때만)
-  const distanceFilteredRestaurants = useMemo(() => {
-    if (!userLocation || !maxDistanceKm) return visibleRestaurants;
-    return visibleRestaurants.filter(
-      (r) =>
-        haversineKm(userLocation.lat, userLocation.lng, r.latitude, r.longitude) <= maxDistanceKm,
-    );
-  }, [visibleRestaurants, userLocation, maxDistanceKm]);
+  }, [radiusFilteredRestaurants, bounds]);
 
   // 정렬 우선순위:
   //   1) 사용자가 직접 누른 식당 (selectedId) — 가시영역 밖이어도 최상단
@@ -196,8 +197,8 @@ export default function HomePage() {
       ? restaurants.find((r) => r.id === selectedId)
       : null;
     const pool = selected
-      ? distanceFilteredRestaurants.filter((r) => r.id !== selectedId)
-      : distanceFilteredRestaurants;
+      ? visibleRestaurants.filter((r) => r.id !== selectedId)
+      : visibleRestaurants;
 
     const sorted = [...pool].sort((a, b) => {
       const openDiff = Number(!a.isOpen) - Number(!b.isOpen);
@@ -212,12 +213,13 @@ export default function HomePage() {
     });
 
     return selected ? [selected, ...sorted] : sorted;
-  }, [distanceFilteredRestaurants, restaurants, selectedId, sortByDistance, userLocation]);
+  }, [visibleRestaurants, restaurants, selectedId, sortByDistance, userLocation]);
 
   // 같은 건물(좌표) 식당은 한 마커로 묶기. count===1 은 단일, 2+ 는 건물 마커.
+  // 반경 필터 결과 기준 → 마커도 목록과 동일하게 반경 밖 식당이 사라짐.
   const restaurantGroups = useMemo(
-    () => groupRestaurantsByLocation(restaurants),
-    [restaurants],
+    () => groupRestaurantsByLocation(radiusFilteredRestaurants),
+    [radiusFilteredRestaurants],
   );
 
   // 데이터가 적을 땐 CustomOverlay(개성 있는 핀) 만, 임계치 넘으면 클러스터러로 전환
@@ -330,7 +332,8 @@ export default function HomePage() {
             isLoading={isLoading}
             isError={isError}
             hasMoreOutsideView={
-              restaurants.length > 0 && distanceFilteredRestaurants.length === 0
+              radiusFilteredRestaurants.length > 0 &&
+              visibleRestaurants.length === 0
             }
             selectedId={selectedId}
           />
@@ -344,10 +347,10 @@ export default function HomePage() {
           <div className="flex items-center justify-between px-4 pt-16 pb-3 border-b border-border flex-shrink-0">
             <span className="text-sm font-semibold text-ink-primary">
               식당 목록{' '}
-              {restaurants.length > 0 &&
-                (distanceFilteredRestaurants.length === restaurants.length
-                  ? `(${restaurants.length})`
-                  : `(${distanceFilteredRestaurants.length} / ${restaurants.length})`)}
+              {radiusFilteredRestaurants.length > 0 &&
+                (visibleRestaurants.length === radiusFilteredRestaurants.length
+                  ? `(${radiusFilteredRestaurants.length})`
+                  : `(${visibleRestaurants.length} / ${radiusFilteredRestaurants.length})`)}
             </span>
             <button
               type="button"
@@ -365,7 +368,8 @@ export default function HomePage() {
               isLoading={isLoading}
               isError={isError}
               hasMoreOutsideView={
-                restaurants.length > 0 && distanceFilteredRestaurants.length === 0
+                radiusFilteredRestaurants.length > 0 &&
+                visibleRestaurants.length === 0
               }
               selectedId={selectedId}
             />

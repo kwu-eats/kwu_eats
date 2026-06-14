@@ -6,8 +6,8 @@ import { useMemo } from 'react';
 
 import { CategoryChipsBar } from '@/components/filters/CategoryChipsBar';
 import { useFilterStore } from '@/lib/stores/filterStore';
-import { haversineKm } from '@/lib/utils/distance';
 import { useSheetStore } from '@/lib/stores/sheetStore';
+import { haversineKm } from '@/lib/utils/distance';
 
 import { RestaurantListItem as RestaurantCard } from './RestaurantListItem';
 import { WelcomeStats } from './WelcomeStats';
