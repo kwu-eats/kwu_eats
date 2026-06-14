@@ -74,13 +74,21 @@ export class KafkaConsumerService implements OnModuleDestroy {
       eachMessage: async ({ topic: t, partition, message }) => {
         const raw = message.value?.toString();
         if (!raw) return;
+
+        // ① 파싱 단계: 깨진 JSON은 재시도해도 영구히 실패하므로
+        //    (poison pill) 로그만 남기고 건너뛴다 → offset 커밋됨
+        let payload: Record<string, unknown>;
         try {
-          const payload = JSON.parse(raw) as Record<string, unknown>;
-          this.logger.debug(`[${t}] partition=${partition} 메시지 수신`);
-          await handler(payload);
+          payload = JSON.parse(raw) as Record<string, unknown>;
         } catch (err) {
-          this.logger.error(`[${t}] 메시지 처리 실패: ${String(err)}`);
+          this.logger.error(`[${t}] 메시지 파싱 실패(건너뜀): ${String(err)}`);
+          return;
         }
+
+        // ② 처리 단계: DB 장애 등 일시적 실패는 에러를 다시 던져서
+        //    offset 을 커밋하지 않게 한다 → Kafka 가 재시도(메시지 보존)
+        this.logger.debug(`[${t}] partition=${partition} 메시지 수신`);
+        await handler(payload);
       },
     });
   }
