@@ -24,6 +24,7 @@ import {
 } from '@/hooks/useMarkerClusterer';
 import { groupRestaurantsByLocation } from '@/lib/groupRestaurants';
 import { useFilterStore } from '@/lib/stores/filterStore';
+import { haversineKm } from '@/lib/utils/distance';
 import { useMapStore } from '@/lib/stores/mapStore';
 import { useSheetStore } from '@/lib/stores/sheetStore';
 
@@ -47,7 +48,15 @@ export default function HomePage() {
   // 클러스터 클릭 시 그 안의 식당 id 목록 (null = 팝업 닫힘)
   const [clusterIds, setClusterIds] = useState<string[] | null>(null);
 
-  const { zones, categoryIds, maxPrice, isOpen: isOpenFilter } = useFilterStore();
+  const {
+    zones,
+    categoryIds,
+    maxPrice,
+    isOpen: isOpenFilter,
+    maxDistanceKm,
+    sortByDistance,
+    userLocation,
+  } = useFilterStore();
   const { setSnap } = useSheetStore();
   const { lat, lng, isLocating, locate } = useGeolocation();
 
@@ -169,26 +178,41 @@ export default function HomePage() {
     );
   }, [restaurants, bounds]);
 
+  // 거리 필터 적용 (userLocation + maxDistanceKm 모두 있을 때만)
+  const distanceFilteredRestaurants = useMemo(() => {
+    if (!userLocation || !maxDistanceKm) return visibleRestaurants;
+    return visibleRestaurants.filter(
+      (r) =>
+        haversineKm(userLocation.lat, userLocation.lng, r.latitude, r.longitude) <= maxDistanceKm,
+    );
+  }, [visibleRestaurants, userLocation, maxDistanceKm]);
+
   // 정렬 우선순위:
   //   1) 사용자가 직접 누른 식당 (selectedId) — 가시영역 밖이어도 최상단
-  //   2) 영업중인 매장 — 페이지 첫 진입 시 사용자가 바로 갈 수 있는 곳 먼저
-  //   3) 영업 마감 (그대로 입력 순서 유지)
-  // stable sort 라 동순위 내 원래 입력 순서 보존.
+  //   2) 영업중인 매장
+  //   3) 같은 그룹 내: sortByDistance 활성 시 거리 오름차순, 아니면 입력 순서 유지
   const orderedRestaurants = useMemo(() => {
     const selected = selectedId
       ? restaurants.find((r) => r.id === selectedId)
       : null;
     const pool = selected
-      ? visibleRestaurants.filter((r) => r.id !== selectedId)
-      : visibleRestaurants;
+      ? distanceFilteredRestaurants.filter((r) => r.id !== selectedId)
+      : distanceFilteredRestaurants;
 
-    // 영업중 우선 정렬 (isOpen=true → 0, false → 1)
-    const sorted = [...pool].sort(
-      (a, b) => Number(!a.isOpen) - Number(!b.isOpen),
-    );
+    const sorted = [...pool].sort((a, b) => {
+      const openDiff = Number(!a.isOpen) - Number(!b.isOpen);
+      if (openDiff !== 0) return openDiff;
+      if (sortByDistance && userLocation) {
+        return (
+          haversineKm(userLocation.lat, userLocation.lng, a.latitude, a.longitude) -
+          haversineKm(userLocation.lat, userLocation.lng, b.latitude, b.longitude)
+        );
+      }
+      return 0;
+    });
 
     return selected ? [selected, ...sorted] : sorted;
-  }, [visibleRestaurants, restaurants, selectedId]);
+  }, [distanceFilteredRestaurants, restaurants, selectedId, sortByDistance, userLocation]);
 
   // 같은 건물(좌표) 식당은 한 마커로 묶기. count===1 은 단일, 2+ 는 건물 마커.
   const restaurantGroups = useMemo(
@@ -306,7 +330,7 @@ export default function HomePage() {
             isLoading={isLoading}
             isError={isError}
             hasMoreOutsideView={
-              restaurants.length > 0 && visibleRestaurants.length === 0
+              restaurants.length > 0 && distanceFilteredRestaurants.length === 0
             }
             selectedId={selectedId}
           />
@@ -321,9 +345,9 @@ export default function HomePage() {
             <span className="text-sm font-semibold text-ink-primary">
               식당 목록{' '}
               {restaurants.length > 0 &&
-                (visibleRestaurants.length === restaurants.length
+                (distanceFilteredRestaurants.length === restaurants.length
                   ? `(${restaurants.length})`
-                  : `(${visibleRestaurants.length} / ${restaurants.length})`)}
+                  : `(${distanceFilteredRestaurants.length} / ${restaurants.length})`)}
             </span>
             <button
               type="button"
@@ -341,7 +365,7 @@ export default function HomePage() {
               isLoading={isLoading}
               isError={isError}
               hasMoreOutsideView={
-                restaurants.length > 0 && visibleRestaurants.length === 0
+                restaurants.length > 0 && distanceFilteredRestaurants.length === 0
               }
               selectedId={selectedId}
             />

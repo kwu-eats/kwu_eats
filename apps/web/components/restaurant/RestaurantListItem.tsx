@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { memo, useState } from 'react';
 
 import { formatNextOpen } from '@/lib/formatNextOpen';
+import { formatDistance, walkMinutes } from '@/lib/utils/distance';
 
 const ZONE_LABEL: Record<string, string> = {
   FRONT_GATE: '정문',
@@ -18,9 +19,11 @@ interface Props {
   restaurant: RestaurantListItemType;
   /** 지도에서 클릭해 선택된 식당이면 시각적으로 강조 */
   isSelected?: boolean;
+  /** 내 위치로부터의 직선 거리 (km). 값이 있으면 카드에 거리 표시 */
+  distanceKm?: number;
 }
 
-function RestaurantListItemComponent({ restaurant, isSelected = false }: Props) {
+function RestaurantListItemComponent({ restaurant, isSelected = false, distanceKm }: Props) {
   const { id, name, zone, isOpen, isPartner, categories, featuredMenu, nextOpenAt, coverImageUrl } =
     restaurant;
   const category = categories[0];
@@ -89,11 +92,19 @@ function RestaurantListItemComponent({ restaurant, isSelected = false }: Props) 
           </span>
         </div>
 
-        {/* 카테고리 · 구역 */}
+        {/* 카테고리 · 구역 · 거리 */}
         <div className="mt-0.5 flex items-center gap-1 text-[13px] text-ink-muted">
           {category && <span>{category.name}</span>}
           {category && <span>·</span>}
           <span>{ZONE_LABEL[zone] ?? zone}</span>
+          {distanceKm !== undefined && (
+            <>
+              <span>·</span>
+              <span className="text-primary-500 font-medium">
+                {formatDistance(distanceKm)} ({walkMinutes(distanceKm)}분)
+              </span>
+            </>
+          )}
         </div>
 
         {/* 대표 메뉴 */}

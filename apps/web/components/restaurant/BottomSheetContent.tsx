@@ -2,9 +2,11 @@
 
 import type { RestaurantListItem } from '@pangchelin/types';
 import { RotateCcw } from 'lucide-react';
+import { useMemo } from 'react';
 
 import { CategoryChipsBar } from '@/components/filters/CategoryChipsBar';
 import { useFilterStore } from '@/lib/stores/filterStore';
+import { haversineKm } from '@/lib/utils/distance';
 import { useSheetStore } from '@/lib/stores/sheetStore';
 
 import { RestaurantListItem as RestaurantCard } from './RestaurantListItem';
@@ -41,9 +43,19 @@ export function BottomSheetContent({
   selectedId,
 }: Props) {
   const { snap, setSnap } = useSheetStore();
-  const { zones, categoryIds, isOpen, maxPrice, reset } = useFilterStore();
+  const { zones, categoryIds, isOpen, maxPrice, maxDistanceKm, sortByDistance, userLocation, reset } = useFilterStore();
   const hasActiveFilters =
-    zones.length > 0 || categoryIds.length > 0 || isOpen || maxPrice !== null;
+    zones.length > 0 || categoryIds.length > 0 || isOpen || maxPrice !== null || sortByDistance || maxDistanceKm !== null;
+
+  const distanceMap = useMemo(() => {
+    if (!userLocation || (!sortByDistance && !maxDistanceKm)) return null;
+    return Object.fromEntries(
+      restaurants.map((r) => [
+        r.id,
+        haversineKm(userLocation.lat, userLocation.lng, r.latitude, r.longitude),
+      ]),
+    );
+  }, [restaurants, userLocation, sortByDistance, maxDistanceKm]);
 
   if (isError) {
     return (
@@ -131,6 +143,7 @@ export function BottomSheetContent({
           <RestaurantCard
             restaurant={restaurants[0]}
             isSelected={restaurants[0].id === selectedId}
+            distanceKm={distanceMap?.[restaurants[0].id]}
           />
           {restaurants.length > 1 && (
             <button
@@ -150,6 +163,7 @@ export function BottomSheetContent({
               key={r.id}
               restaurant={r}
               isSelected={r.id === selectedId}
+              distanceKm={distanceMap?.[r.id]}
             />
           ))}
         </div>

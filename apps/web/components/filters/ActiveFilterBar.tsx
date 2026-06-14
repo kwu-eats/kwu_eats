@@ -5,6 +5,10 @@ import { X } from 'lucide-react';
 import { useCategories } from '@/hooks/queries/useCategories';
 import { useFilterStore } from '@/lib/stores/filterStore';
 
+function formatDistanceLabel(km: number): string {
+  return km < 1 ? `${km * 1000}m 이내` : `${km}km 이내`;
+}
+
 const ZONE_LABEL: Record<string, string> = {
   FRONT_GATE: '정문',
   BACK_GATE: '후문',
@@ -36,10 +40,14 @@ export function ActiveFilterBar({ variant = 'floating' }: Props) {
     categoryIds,
     isOpen,
     maxPrice,
+    maxDistanceKm,
+    sortByDistance,
     toggleZone,
     toggleCategoryId,
     setIsOpen,
     setMaxPrice,
+    setMaxDistanceKm,
+    setSortByDistance,
   } = useFilterStore();
   const { data: categories = [] } = useCategories();
 
@@ -77,6 +85,22 @@ export function ActiveFilterBar({ variant = 'floating' }: Props) {
       key: 'maxPrice',
       label: formatBudget(maxPrice),
       onRemove: () => setMaxPrice(null),
+    });
+  }
+
+  if (sortByDistance) {
+    chips.push({
+      key: 'sortByDistance',
+      label: '거리순',
+      onRemove: () => setSortByDistance(false),
+    });
+  }
+
+  if (maxDistanceKm) {
+    chips.push({
+      key: 'maxDistance',
+      label: formatDistanceLabel(maxDistanceKm),
+      onRemove: () => setMaxDistanceKm(null),
     });
   }
 
