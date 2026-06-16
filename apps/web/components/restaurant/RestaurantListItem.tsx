@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { memo, useState } from 'react';
 
 import { formatNextOpen } from '@/lib/formatNextOpen';
+import { RESTAURANT_IMAGE_NAMES } from '@/lib/restaurantImages.generated';
 import { formatDistance, walkMinutes } from '@/lib/utils/distance';
 
 const ZONE_LABEL: Record<string, string> = {
@@ -32,10 +33,11 @@ function RestaurantListItemComponent({ restaurant, isSelected = false, distanceK
   // DB 의 coverImageUrl 이 비어있는 식당이 많아 마지막 정적 매칭으로 일관된 이미지 노출.
   // raw 식당명을 src 에 그대로 넘김 — next/image 가 자체적으로 URL 인코딩 처리.
   // encodeURIComponent 를 미리 적용하면 이중 인코딩으로 _next/image 가 400.
+  // 정적 후보는 실제 파일이 있는 식당만 — 사진 없는 식당의 불필요한 404 요청 방지 (없으면 바로 이모지).
   const candidates = [
     coverImageUrl,
     featuredMenu?.imageUrl,
-    `/restaurants/${name}.jpg`,
+    RESTAURANT_IMAGE_NAMES.has(name) ? `/restaurants/${name}.jpg` : null,
   ].filter((u): u is string => Boolean(u));
   const [thumbIdx, setThumbIdx] = useState(0);
   const thumbnailUrl = candidates[thumbIdx] ?? null;

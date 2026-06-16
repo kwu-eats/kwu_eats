@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 import { formatNextOpen } from '@/lib/formatNextOpen';
+import { RESTAURANT_IMAGE_NAMES } from '@/lib/restaurantImages.generated';
 
 const ZONE_LABEL: Record<string, string> = {
   FRONT_GATE: '정문',
@@ -86,10 +87,11 @@ interface RowProps {
 // coverImageUrl → featuredMenu.imageUrl → public/restaurants 정적 매칭 → 🍽 fallback.
 function ClusterRow({ restaurant: r, onSelect }: RowProps) {
   // raw 식당명 — next/image 가 자체 인코딩. encodeURIComponent 미리 적용 시 _next/image 400.
+  // 정적 후보는 실제 파일이 있는 식당만 — 사진 없는 식당의 불필요한 404 요청 방지.
   const candidates = [
     r.coverImageUrl,
     r.featuredMenu?.imageUrl,
-    `/restaurants/${r.name}.jpg`,
+    RESTAURANT_IMAGE_NAMES.has(r.name) ? `/restaurants/${r.name}.jpg` : null,
   ].filter((u): u is string => Boolean(u));
   const [thumbIdx, setThumbIdx] = useState(0);
   const thumbnailUrl = candidates[thumbIdx] ?? null;

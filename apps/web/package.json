@@ -3,8 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/gen-restaurant-images.mjs && next dev",
+    "prebuild": "node scripts/gen-restaurant-images.mjs",
+    "build": "node scripts/gen-restaurant-images.mjs && next build",
     "start": "next start",
     "lint": "next lint",
     "e2e": "playwright test",
