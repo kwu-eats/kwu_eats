@@ -69,6 +69,47 @@ services:
         max-file: "3"
 
   # ────────────────────────────────────────────────────────
+  # Kafka (KRaft 단일 노드) — 제보 비동기 파이프라인용
+  # 내부 네트워크 전용 (외부 포트 노출 안 함).
+  # 데이터는 ephemeral — 제보의 영속 저장소는 Postgres 이며,
+  # 메시지는 Consumer 가 즉시 소비해 DB 에 기록한다.
+  # ────────────────────────────────────────────────────────
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: pangchelin-kafka
+    restart: always
+    environment:
+      KAFKA_NODE_ID: 0
+      KAFKA_PROCESS_ROLES: controller,broker
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: '5L6g3nShT-eMCtK--X86sw'
+      # 메모리 보호 — JVM 힙 제한 (단일 노드, 소규모 트래픽)
+      KAFKA_HEAP_OPTS: "-Xmx512m -Xms256m"
+    networks:
+      - pangchelin-prod
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ────────────────────────────────────────────────────────
   # API (NestJS)
   # ────────────────────────────────────────────────────────
   api:
@@ -87,6 +128,8 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN}
+      # Kafka 브로커 (compose 내부 네트워크)
+      KAFKA_BROKER: ${KAFKA_BROKER:-kafka:9092}
       # 프리티어 메모리 보호 — Node 힙 384MB (t3.micro 기준)
       NODE_OPTIONS: "--max-old-space-size=384"
       # AWS S3 (선택사항)
@@ -101,6 +144,9 @@ services:
       postgres:
         condition: service_healthy
         required: false
+      # API 부팅 시 KafkaProducer.onModuleInit() 이 connect 하므로 broker 가 떠야 함
+      kafka:
+        condition: service_healthy
     networks:
       - pangchelin-prod
     healthcheck:

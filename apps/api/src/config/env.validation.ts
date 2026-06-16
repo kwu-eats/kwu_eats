@@ -36,6 +36,9 @@ export const envValidationSchema = Joi.object({
   AWS_SECRET_ACCESS_KEY: Joi.string().optional().allow(''),
   AWS_S3_BUCKET: Joi.string().optional().allow(''),
 
+  // Kafka
+  KAFKA_BROKER: Joi.string().default('kafka:9092'),
+
   // 로깅
   LOG_LEVEL: Joi.string()
     .valid('error', 'warn', 'log', 'debug', 'verbose')

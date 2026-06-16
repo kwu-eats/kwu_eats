@@ -1,7 +1,8 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { Loader2, MapPin, X } from 'lucide-react';
+import { useCallback, useState } from 'react';
 
 import { useCategories } from '@/hooks/queries/useCategories';
 import { useFilterStore, type Zone } from '@/lib/stores/filterStore';
@@ -14,6 +15,7 @@ const ZONE_OPTIONS: Array<{ value: Zone; label: string }> = [
 ];
 
 const BUDGET_OPTIONS = [5_000, 10_000, 15_000, 20_000];
+const DISTANCE_OPTIONS = [0.5, 1, 1.5, 2]; // km
 
 function formatBudget(price: number) {
   return price >= 10_000 ? `~${price / 10_000}만원` : `~${price / 1_000}천원`;
@@ -65,15 +67,59 @@ export function FilterSheet({ open, onClose }: Props) {
     categoryIds,
     isOpen,
     maxPrice,
+    maxDistanceKm,
+    sortByDistance,
+    userLocation,
     toggleZone,
     clearZones,
     toggleCategoryId,
     clearCategoryIds,
     setIsOpen,
     setMaxPrice,
+    setMaxDistanceKm,
+    setSortByDistance,
+    setUserLocation,
     reset,
   } = useFilterStore();
   const { data: categories = [] } = useCategories();
+
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationDenied, setLocationDenied] = useState(false);
+
+  const requestLocation = useCallback(
+    (onSuccess?: () => void) => {
+      if (!navigator.geolocation) {
+        setLocationDenied(true);
+        return;
+      }
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setIsLocating(false);
+          setLocationDenied(false);
+          onSuccess?.();
+        },
+        () => {
+          setIsLocating(false);
+          setLocationDenied(true);
+        },
+        { timeout: 10_000, maximumAge: 60_000 },
+      );
+    },
+    [setUserLocation],
+  );
+
+  const handleDistanceToggle = useCallback(
+    (action: () => void) => {
+      if (userLocation) {
+        action();
+      } else {
+        requestLocation(action);
+      }
+    },
+    [userLocation, requestLocation],
+  );
 
   return (
     <AnimatePresence>
@@ -180,6 +226,52 @@ export function FilterSheet({ open, onClose }: Props) {
                       className={`${chipBase} ${maxPrice === b ? chipActive : chipIdle}`}
                     >
                       {formatBudget(b)}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <SectionHeader
+                  title="내 위치 기준"
+                  active={sortByDistance || maxDistanceKm !== null}
+                  onReset={() => { setSortByDistance(false); setMaxDistanceKm(null); }}
+                />
+                {locationDenied && (
+                  <p className="mb-3 flex items-center gap-1.5 text-xs text-ink-muted">
+                    <MapPin size={12} className="flex-shrink-0" />
+                    위치 권한이 필요해요. 브라우저 설정에서 허용해 주세요.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={isLocating}
+                    onClick={() => handleDistanceToggle(() => setSortByDistance(!sortByDistance))}
+                    className={`${chipBase} flex items-center gap-1.5 ${sortByDistance ? chipActive : chipIdle}`}
+                  >
+                    {isLocating ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <MapPin size={14} />
+                    )}
+                    거리순 정렬
+                  </button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {DISTANCE_OPTIONS.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      disabled={isLocating}
+                      onClick={() =>
+                        handleDistanceToggle(() =>
+                          setMaxDistanceKm(maxDistanceKm === d ? null : d),
+                        )
+                      }
+                      className={`${chipBase} ${maxDistanceKm === d ? chipActive : chipIdle}`}
+                    >
+                      {d < 1 ? `${d * 1000}m` : `${d}km`} 이내
                     </button>
                   ))}
                 </div>

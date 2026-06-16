@@ -1,13 +1,27 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Prisma, ReportType } from '@prisma/client';
 
+import { KafkaProducerService } from '../kafka/kafka.producer.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateReportDto } from './dto/create-report.dto';
 
+export const REPORT_SUBMITTED_TOPIC = 'report-submitted';
+
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ReportsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly kafkaProducer: KafkaProducerService,
+  ) {}
 
   async create(dto: CreateReportDto) {
     this.validateSuggestedData(dto.type, dto.suggestedData);
@@ -40,7 +54,26 @@ export class ReportsService {
       }
     }
 
-    const report = await this.prisma.report.create({
+    // 유효성 검사 통과 → Kafka에 발행 (DB 저장은 Consumer가 처리)
+    try {
+      await this.kafkaProducer.send(REPORT_SUBMITTED_TOPIC, {
+        ...dto,
+        receivedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      // Kafka 발행 실패 = 제보 접수 불가. 사용자에게 재시도를 안내.
+      this.logger.error(`제보 발행 실패: ${String(err)}`);
+      throw new ServiceUnavailableException(
+        '앗, 잠시 후 다시 시도해주세요',
+      );
+    }
+
+    return { status: 'accepted', message: '알려주셔서 고마워요!' };
+  }
+
+  // Consumer에서 실제 DB 저장 시 호출
+  async saveToDb(dto: CreateReportDto) {
+    return this.prisma.report.create({
       data: {
         type: dto.type,
         restaurantId: dto.restaurantId,
@@ -57,8 +90,6 @@ export class ReportsService {
         createdAt: true,
       },
     });
-
-    return report;
   }
 
   private validateSuggestedData(
