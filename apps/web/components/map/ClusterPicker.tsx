@@ -110,6 +110,9 @@ function ClusterRow({ restaurant: r, onSelect }: RowProps) {
               fill
               sizes="44px"
               className="object-cover"
+              // 파일명에 공백이 있는 public/restaurants 정적 이미지는 next/image 최적화기가
+              // 내부 fetch 에서 파일을 못 찾아 400 을 낸다. 로컬 후보만 최적화 건너뜀.
+              unoptimized={thumbnailUrl.startsWith('/restaurants/')}
               onError={() => setThumbIdx((i) => i + 1)}
             />
           ) : (

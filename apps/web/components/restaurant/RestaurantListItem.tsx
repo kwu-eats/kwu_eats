@@ -60,6 +60,10 @@ function RestaurantListItemComponent({ restaurant, isSelected = false, distanceK
             fill
             sizes="52px"
             className="object-cover"
+            // public/restaurants 정적 이미지는 파일명에 공백(예: "경대컵밥 광운대점.jpg")이 있으면
+            // next/image 최적화기의 내부 fetch 가 파일을 못 찾아 _next/image 가 400 을 반환한다.
+            // 로컬 정적 후보일 때만 최적화를 건너뛰어 원본을 그대로 서빙한다 (원격 S3 이미지는 최적화 유지).
+            unoptimized={thumbnailUrl.startsWith('/restaurants/')}
             // 후보 이미지가 404 등으로 실패하면 다음 후보로 자동 전환
             onError={() => setThumbIdx((i) => i + 1)}
           />
